@@ -124,7 +124,7 @@ const initialFileContents: {[key: string]: string} = {
   '_config.yml': `title: My Awesome Jekyll Site
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
-baseurl: "/blank" # subpath situs Anda, mis. /blog
+baseurl: "" # subpath situs Anda, mis. /blog
 url: "" # nama host & protokol dasar untuk situs Anda, mis. http://example.com
 twitter_username: jekyllrb
 github_username:  jekyll
@@ -206,7 +206,7 @@ permalink: /
 </div>
 `,
   '_layouts/default.html': `<!DOCTYPE html>
-<html lang="{{ page.lang | default: site.lang | default: "en" }}" class="h-full">
+<html lang="{{ page.lang | default: site.lang | default: "id-ID" }}" class="h-full">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -277,6 +277,7 @@ layout: default
 `,
   '_posts/2024-01-01-welcome-to-jekyll.md': `---
 title:  "Welcome to Jekyll!"
+image: https://placehold.co/600x400?text=Jekyll\nWorld
 date:   2024-01-01 00:00:00 -0000
 categories: jekyll update
 ---

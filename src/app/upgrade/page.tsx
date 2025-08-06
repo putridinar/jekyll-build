@@ -78,12 +78,12 @@ export default function UpgradePage() {
     }
 
     return (
+        <>
         <div className="flex min-h-screen flex-col">
             <AppHeader />
-            <main className="flex-1 bg-muted/20">
+            <main className="flex-1 px-3 bg-muted/20">
                 <div className="container mx-auto max-w-4xl py-12">
                     <div className="text-center mb-12">
-                        <h1 className="text-4xl font-bold font-headline tracking-tight sm:text-5xl">Upgrade to Pro</h1>
                         <p className="mt-4 text-lg text-muted-foreground">Unlock powerful features and take your creativity to the next level.</p>
                     </div>
 
@@ -117,7 +117,10 @@ export default function UpgradePage() {
                     </div>
                 </div>
             </main>
-            <AppFooter />
+            <AppFooter onPublish={function (): void {
+                    throw new Error('Function not implemented.');
+                } } isPublishing={false} isCreatingPr={false} />
         </div>
+        </>
     );
 }
