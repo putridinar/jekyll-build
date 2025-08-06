@@ -53,34 +53,6 @@ function SettingsPageContent() {
         }
     }, [searchParams, toast, router]);
 
-    const fetchInitialSettings = React.useCallback(async () => {
-        if (!user) return;
-        setLoading(true);
-        try {
-            const result = await getSettings();
-            if (result.success && result.data) {
-                const newSettings = { ...settings, ...result.data };
-                setSettings(newSettings);
-                if (newSettings.installationId) {
-                    await fetchRepos(newSettings.installationId);
-                }
-                if (newSettings.githubRepo) {
-                    await fetchBranches(newSettings.githubRepo);
-                }
-            }
-        } catch (error: any) {
-            toast({ title: 'Error', description: error.message, variant: 'destructive' });
-        } finally {
-            setLoading(false);
-        }
-    // Array dependensi sengaja dibuat minimal untuk menghindari loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, toast]);
-
-    React.useEffect(() => {
-        fetchInitialSettings();
-    }, [fetchInitialSettings]);
-
     const fetchRepos = async (installationId?: any) => {
         setIsFetchingRepos(true);
         try {
@@ -379,8 +351,8 @@ function SettingsPageContent() {
                 </div>
             </main>
             <AppFooter onPublish={function (): void {
-          throw new Error('Function not implemented.');
-        } } isPublishing={false} />
+                throw new Error('Function not implemented.');
+            } } isPublishing={false} isCreatingPr={false} />
         </div>
     );
 }

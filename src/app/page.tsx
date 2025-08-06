@@ -69,7 +69,7 @@ const initialFileStructure: FileNode[] = [
     ],
   },
   { name: '_config.yml', path: '_config.yml', type: 'file' },
-  { name: 'index.md', path: 'index.md', type: 'file' },
+  { name: 'index.html', path: 'index.html', type: 'file' },
   { name: 'Gemfile', path: 'Gemfile', type: 'file' },
 ];
 
@@ -77,9 +77,6 @@ const initialFileContents: { [key: string]: string } = {
   '_config.yml': `title: My Awesome Jekyll Site
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
 baseurl: "/blank" # subpath situs Anda, mis. /blog
 url: "" # nama host & protokol dasar untuk situs Anda, mis. http://example.com
 twitter_username: jekyllrb
@@ -126,33 +123,61 @@ plugins:
 #   - vendor/gems/
 #   - vendor/ruby/
 `,
-  'index.md': `---
+  'index.html': `---
 layout: default
-title: Home
+title: Welcome to Your New Blog!
 permalink: /
 ---
 
-# Welcome to Jekyll Flow
+<h1 class="flex justify-center items-center mb-6 text-3xl font-bold text-center">Hello Broo..!</h1>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
-This is a sample page. Start editing to see the magic happen!
+  {% for post in site.posts %}
+    <a href="{{ post.url | relative_url }}" class="group block rounded-lg overflow-hidden bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 dark:bg-slate-800">
+      
+      {% if post.image %}
+        <img src="{{ post.image | relative_url }}" alt="{{ post.title }}" class="w-full h-48 object-cover">
+      {% endif %}
+
+      <div class="p-6">
+        <h2 class="mb-2 text-xl font-bold tracking-tight text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors">
+          {{ post.title }}
+        </h2>
+        
+        <p class="font-normal text-slate-600 dark:text-slate-400 mb-4">
+          {{ post.excerpt | strip_html | truncatewords: 20 }}
+        </p>
+
+        <p class="text-sm text-slate-500 dark:text-slate-500">
+          {{ post.date | date: "%b %d, %Y" }}
+        </p>
+      </div>
+
+    </a>
+  {% endfor %}
+
+</div>
 `,
   '_layouts/default.html': `<!DOCTYPE html>
-<html lang="{{ page.lang | default: site.lang | default: "en" }}">
+<html lang="{{ page.lang | default: site.lang | default: "en" }}" class="h-full">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title | escape }} | {{ site.title | escape }}</title>
     <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | normalize_whitespace | truncate: 160 | escape }}">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="{{ site.baseurl }}{{ "/assets/css/style.css" | relative_url }}">
     <link rel="canonical" href="{{ page.url | replace:'index.html','' | absolute_url }}">
   </head>
-  <body>
+  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
     {% include header.html %}
-    <main class="page-content" aria-label="Content">
-      <div class="wrapper">
+    
+    <main class="page-content flex-grow" aria-label="Content">
+      <div class="container mx-auto px-4 py-8">
         {{ content }}
       </div>
     </main>
+    
     {% include footer.html %}
   </body>
 </html>
@@ -160,60 +185,48 @@ This is a sample page. Start editing to see the magic happen!
   '_layouts/post.html': `---
 layout: default
 ---
-<article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+<article class="post h-entry px-4 py-8 max-w-3xl mx-auto" itemscope itemtype="http://schema.org/BlogPosting">
 
-  <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">{{ page.title | escape }}</h1>
-    <p class="post-meta">
-      <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">
-        {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
-        {{ page.date | date: date_format }}
-      </time>
-      {%- if page.author -%}
-        • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">{{ page.author }}</span></span>
-      {%- endif -%}</p>
-  </header>
-
-  <div class="post-content e-content" itemprop="articleBody">
+  <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
     {{ content }}
+  </div>
+  
+  <div class="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+    Diposting pada <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">{{ page.date | date: "%b %-d, %Y" }}</time>
+    {%- if page.author -%}
+      oleh <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">{{ page.author }}</span></span>
+    {%- endif -%}
+    {%- if page.tags and page.tags.size > 0 -%}
+      <br>
+      Kategori:
+      {%- for tag in page.tags -%}
+        <a href="{{ site.baseurl }}/tags/{{ tag | slugify }}/" class="text-purple-600 dark:text-purple-400 hover:underline">#{{ tag }}</a>{%- unless forloop.last -%},{%- endunless -%}
+      {%- endfor -%}
+    {%- endif -%}
   </div>
 
   <a class="u-url" href="{{ site.baseurl }}{{ page.url | relative_url }}" hidden></a>
 </article>
 `,
-  '_includes/header.html': `<header class="site-header">
-  <div class="wrapper">
-    <a class="site-title" rel="author" href="{{ site.baseurl }}{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+  '_includes/header.html': `<header class="bg-white dark:bg-gray-800 shadow-md py-4">
+  <div class="container mx-auto px-4 flex justify-between items-center">
+    <a class="text-2xl font-bold text-gray-900 dark:text-white" rel="author" href="{{ site.baseurl }}{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+    
     <nav class="site-nav">
-      <div class="trigger">
+      <div class="hidden md:block">
         {%- for item in site.data.navigation -%}
-          <a class="page-link" href="{{ site.baseurl }}{{ item.url | relative_url }}">{{ item.title }}</a>
+          <a class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md font-medium" href="{{ site.baseurl }}{{ item.url | relative_url }}">{{ item.title }}</a>
         {%- endfor -%}
       </div>
-    </nav>
+      </nav>
   </div>
 </header>
 `,
- '_includes/footer.html': `<footer class="site-footer h-card">
-  <data class="u-url" href="{{ site.baseurl }}{{ "/" | relative_url }}"></data>
-
-  <div class="wrapper">
-    <div class="footer-col-wrapper">
-      <div class="footer-col">
-        <p class="feed-subscribe">
-          <a href="{{ 'feed.xml' | relative_url }}">
-            <svg class="svg-icon orange">
-              <use xlink:href="{{ 'assets/minima-social-icons.svg#rss' | relative_url }}"></use>
-            </svg><span>Subscribe</span>
-          </a>
-        </p>
-      </div>
-      <div class="footer-col">
-        <p>{{ site.description | escape }}</p>
-      </div>
+ '_includes/footer.html': `<footer class="w-full bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+    <div class="container mx-auto py-5 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
+      <p>&copy; {% capture current_year %}{{ 'now' | date: "%Y" }}{% endcapture %}{{ current_year }} {{ site.title }} &bull; Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
     </div>
-  </div>
-</footer>
+  </footer>
 `,
  '_posts/2024-01-01-welcome-to-jekyll.md': `---
 title:  "Welcome to Jekyll!"

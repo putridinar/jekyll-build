@@ -274,10 +274,7 @@ export async function saveSettings(settings: { githubRepo: string; githubBranch:
         
         // Logika ini memastikan kita menggabungkan pilihan repo/cabang baru dengan info otentikasi yang ada.
         const updatedSettings = {
-            githubUsername: currentSettings.githubUsername,
-            githubAvatarUrl: currentSettings.githubAvatarUrl,
-            githubAccountId: currentSettings.githubAccountId,
-            installationId: currentSettings.installationId,
+            ...currentSettings,
             ...settings // Timpa dengan repo dan cabang baru
         };
 
@@ -613,7 +610,16 @@ export async function publishTemplateFiles(files: any[]) {
                 if (item.type === 'file') {
                     filesToCommit.push(item);
                 } else if (item.type === 'folder' && item.children) {
-                    collectFiles(item.children);
+                    if (item.children.length === 0) {
+                        filesToCommit.push({
+                            path: `${item.path}/.gitkeep`,
+                            name: '.gitkeep',
+                            content: '',
+                            type: 'file'
+                        });
+                    } else {
+                        collectFiles(item.children);
+                    }
                 }
             }
         };
@@ -676,7 +682,28 @@ export async function createPullRequestAction(files: any[], prDetails: { title: 
         await createBranch(githubRepo, newBranchName, baseSha, installationId);
 
         // 4. Lakukan commit semua file ke cabang baru
-        for (const file of files) {
+        const filesToCommit: any[] = [];
+        const collectFiles = (items: any[]) => {
+            for (const item of items) {
+                if (item.type === 'file') {
+                    filesToCommit.push(item);
+                } else if (item.type === 'folder' && item.children) {
+                    if (item.children.length === 0) {
+                        filesToCommit.push({
+                            path: `${item.path}/.gitkeep`,
+                            name: '.gitkeep',
+                            content: '',
+                            type: 'file'
+                        });
+                    } else {
+                        collectFiles(item.children);
+                    }
+                }
+            }
+        };
+        collectFiles(files);
+
+        for (const file of filesToCommit) {
              const isBase64 = file.content.startsWith('data:');
              const contentToCommit = isBase64 ? file.content.split(',')[1] : file.content;
 
