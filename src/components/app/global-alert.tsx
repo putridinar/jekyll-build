@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { useAlert } from '@/contexts/AlertContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
