@@ -382,7 +382,7 @@ export async function scaffoldTemplate() {
         }
 
         const templateFiles = {
-            '_config.yml': "
+            '_config.yml': `
 # Selamat datang di Jekyll!
 #
 # File konfigurasi ini dimaksudkan untuk pengaturan yang memengaruhi seluruh blog Anda, nilai-nilai
@@ -492,12 +492,12 @@ a {
 }
 ",
             'assets/js/main.js': "// JavaScript kustom Anda ada di sini
-console.log(\"DreamNeuron template is running!\");
+console.log(\"Jekyll Buildr template is running!\");
 ",
             '_posts/.gitkeep': '',
             'assets/images/.gitkeep': '',
             '_data/.gitkeep': '',
-        };
+        `};
 
         for (const [path, content] of Object.entries(templateFiles)) {
             await commitFileToRepo({
