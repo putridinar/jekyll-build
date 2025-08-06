@@ -1,0 +1,398 @@
+// src/app/settings/page.tsx
+'use client';
+
+import * as React from 'react';
+import { useAuth } from '@/components/app/auth-provider';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { saveSettings, getSettings, disconnectGithub } from '@/actions/content';
+import { Github, Loader2, Trash2, ExternalLink, Settings as SettingsIcon, Crown } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { AppHeader } from '@/components/app/header';
+import { AppFooter } from '@/components/app/footer';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+
+
+const GITHUB_APP_NAME = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
+const GITHUB_APP_URL = `https://github.com/apps/${GITHUB_APP_NAME}/installations/new`;
+const PAYPAL_MANAGE_SUBSCRIPTION_URL = process.env.NEXT_PUBLIC_PAYPAL_MANAGE_SUBSCRIPTION_URL || 'https://www.paypal.com/myaccount/autopay/';
+
+
+function SettingsPageContent() {
+    const { user, loading: authLoading } = useAuth();
+    const { toast } = useToast();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const [settings, setSettings] = React.useState<any>({});
+    const [repos, setRepos] = React.useState<string[]>([]);
+    const [branches, setBranches] = React.useState<string[]>([]);
+    const [loading, setLoading] = React.useState(true);
+    const [isSaving, setIsSaving] = React.useState(false);
+    const [isFetchingRepos, setIsFetchingRepos] = React.useState(false);
+    const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
+    const [isDisconnecting, setIsDisconnecting] = React.useState(false);
+
+    React.useEffect(() => {
+        // Tangani umpan balik dari callback GitHub
+        const status = searchParams.get('status');
+        const message = searchParams.get('message');
+        if (status && message) {
+            toast({
+                title: status === 'success' ? 'Berhasil!' : 'Kesalahan',
+                description: message,
+                variant: status === 'success' ? 'default' : 'destructive',
+            });
+            // Bersihkan URL
+            router.replace('/settings');
+        }
+    }, [searchParams, toast, router]);
+
+    const fetchInitialSettings = React.useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const result = await getSettings();
+            if (result.success && result.data) {
+                const newSettings = { ...settings, ...result.data };
+                setSettings(newSettings);
+                if (newSettings.installationId) {
+                    await fetchRepos(newSettings.installationId);
+                }
+                if (newSettings.githubRepo) {
+                    await fetchBranches(newSettings.githubRepo);
+                }
+            }
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        } finally {
+            setLoading(false);
+        }
+    // Array dependensi sengaja dibuat minimal untuk menghindari loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, toast]);
+
+    React.useEffect(() => {
+        fetchInitialSettings();
+    }, [fetchInitialSettings]);
+
+    const fetchRepos = async (installationId?: any) => {
+        setIsFetchingRepos(true);
+        try {
+            const response = await fetch('/api/github/get-repos');
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to fetch repositories.');
+            setRepos(data.repositories || []);
+        } catch (error: any) {
+            toast({ title: 'Error fetching repos', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsFetchingRepos(false);
+        }
+    };
+
+    const fetchBranches = async (repoFullName: string) => {
+        if (!repoFullName) return;
+        setIsFetchingBranches(true);
+        try {
+            const response = await fetch(`/api/github/get-branches?repoFullName=${repoFullName}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to fetch branches');
+            setBranches(data.branches || []);
+        } catch (error: any) {
+            toast({ title: 'Error fetching branches', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsFetchingBranches(false);
+        }
+    };
+
+    const fetchInitialData = React.useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const result = await getSettings();
+            if (result.success && result.data) {
+                const fetchedSettings = result.data || {};
+                setSettings(fetchedSettings);
+                
+                if (fetchedSettings.installationId) {
+                    if (!fetchedSettings.githubUsername) {
+                        await fetch('/api/github/get-account-info');
+                    }
+                await fetchRepos();
+                }
+                if (fetchedSettings.githubRepo) {
+                await fetchBranches(fetchedSettings.githubRepo);
+                }
+            }
+        } catch (error: any) {
+            toast({ title: 'Error', description: `Failed to load initial settings: ${error.message}`, variant: 'destructive' });
+        } finally {
+            setLoading(false);
+        }
+    }, [user, toast]);
+
+    React.useEffect(() => {
+        const status = searchParams.get('status');
+        const message = searchParams.get('message');
+        if (status && message) {
+            toast({
+                title: status === 'success' ? 'Success!' : 'Info',
+                description: message,
+                variant: status === 'success' ? 'default' : 'destructive',
+            });
+            fetchInitialData();
+            router.replace('/settings');
+        }
+    }, [searchParams, toast, router, fetchInitialData]);
+
+    React.useEffect(() => {
+        fetchInitialData();
+    }, [fetchInitialData]);
+
+    const handleRepoChange = (repoFullName: string) => {
+        setSettings((prev: any) => ({ ...prev, githubRepo: repoFullName, githubBranch: '' }));
+        setBranches([]);
+        if (repoFullName) {
+            fetchBranches(repoFullName);
+        }
+    };
+
+    const handleBranchChange = (branch: string) => {
+        setSettings((prev: any) => ({ ...prev, githubBranch: branch }));
+    };
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        try {
+            const result = await saveSettings({ 
+                githubRepo: settings.githubRepo, 
+                githubBranch: settings.githubBranch 
+            });
+            if (result.success) {
+                toast({ title: 'Settings saved successfully!' });
+            } else {
+                throw new Error(result.error || 'Failed to save settings.');
+            }
+        } catch (error: any) {
+            toast({ title: 'Error saving settings', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleReconnect = () => {
+        const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME;
+        window.location.href = `https://github.com/apps/${appName}/installations/new`;
+    };
+    
+    const handleDisconnect = async () => {
+        setIsDisconnecting(true);
+        try {
+            const result = await disconnectGithub();
+            if (result.success) {
+                toast({ title: 'GitHub Terputus', description: 'Mengarahkan Anda untuk menghapus instalasi aplikasi...' });
+                // Atur ulang status
+                setSettings({ installationId: '', githubRepo: '', githubBranch: '' });
+                setRepos([]);
+                setBranches([]);
+                // Lebih aman membaca installationId dari status sebelum meresetnya.
+                window.location.href = `https://github.com/settings/installations/${settings.installationId}`;
+            } else {
+                throw new Error(result.error || 'Gagal memutuskan sambungan.');
+            }
+        } catch (error: any) {
+            toast({ title: 'Kesalahan', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsDisconnecting(false);
+        }
+    };
+
+     if (authLoading || loading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        router.push('/login');
+        return null;
+    }
+
+    return (
+        <div className="flex min-h-screen flex-col">
+            <AppHeader />
+            <main className="flex-1 bg-muted/20 p-4 sm:p-6 md:p-8">
+                <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
+                    {/* Profile Card */}
+                    <Card className="md:col-span-1">
+                        <CardHeader className="flex flex-row items-center gap-4">
+                            <Avatar className="h-14 w-14">
+                                <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                                <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <CardTitle className="text-xl font-headline">{user.displayName}</CardTitle>
+                                <CardDescription>{user.email}</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <h3 className="text-sm font-medium">Account Status</h3>
+                                {user.role === 'proUser' ? (
+                                    <Badge variant="default" className="mt-1 bg-gradient-to-r from-accent to-primary">
+                                        <Crown className="mr-1 h-3 w-3" /> Pro User
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="secondary" className="mt-1">Free User</Badge>
+                                )}
+                            </div>
+                             {user.role === 'proUser' && (
+                                <div>
+                                    <h3 className="text-sm font-medium">Subscription</h3>
+                                    <Button variant="outline" size="sm" className="mt-1" asChild>
+                                        <a href={PAYPAL_MANAGE_SUBSCRIPTION_URL} target="_blank" rel="noopener noreferrer">
+                                            Manage Subscription <ExternalLink className="ml-2 h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                </div>
+                            )}
+
+                        </CardContent>
+                        <CardFooter className="border-t pt-6">
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full" disabled={!settings.installationId || isDisconnecting}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> 
+                                        {isDisconnecting ? 'Disconnecting...' : 'Disconnect GitHub'}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will remove your repository connection. You will be redirected to GitHub to uninstall the app to fully complete the process.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDisconnect} className="bg-destructive hover:bg-destructive/90">
+                                            Yes, Disconnect
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </CardFooter>
+                    </Card>
+
+                    {/* GitHub Settings Card */}
+                    <Card className="md:col-span-2">
+                        <CardHeader>
+                            <div className="flex justify-between items-center gap-2">
+                                <div className="flex items-center gap-2">
+                                <SettingsIcon className="h-6 w-6" />
+                                <CardTitle className="font-headline text-2xl">GitHub Settings</CardTitle>
+                                </div>
+                                <Button type='button' variant="outline" size="sm" onClick={() => router.back()}>
+                                    kembali
+                                </Button>
+                            </div>
+                            <CardDescription>Connect your GitHub account to publish your Jekyll site directly from the editor.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {!settings.installationId ? (
+                                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted p-8 text-center">
+                                    <p className="mb-4 text-muted-foreground">The first step is to connect the GitHub App.</p>
+                                    <Button asChild>
+                                        <a href={GITHUB_APP_URL} target="_blank" rel="noopener noreferrer">
+                                            <Github className="mr-2 h-4 w-4" />
+                                            Connect with GitHub
+                                        </a>
+                                    </Button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSave} className="space-y-6">
+                                    <div>
+                                        <Label htmlFor="repo">Repository</Label>
+                                        <Select
+                                            value={settings.githubRepo || ''}
+                                            onValueChange={handleRepoChange}
+                                            disabled={isFetchingRepos}
+                                        >
+                                            <SelectTrigger id="repo" className="mt-1">
+                                                <SelectValue placeholder="Select a repository..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {isFetchingRepos ? (
+                                                    <div className="flex items-center justify-center p-2">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    </div>
+                                                ) : (
+                                                    repos.map(repo => <SelectItem key={repo} value={repo}>{repo}</SelectItem>)
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="branch">Branch</Label>
+                                        <Select
+                                            value={settings.githubBranch || ''}
+                                            onValueChange={handleBranchChange}
+                                            disabled={!settings.githubRepo || isFetchingBranches}
+                                        >
+                                            <SelectTrigger id="branch" className="mt-1">
+                                                <SelectValue placeholder="Select a branch..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {isFetchingBranches ? (
+                                                    <div className="flex items-center justify-center p-2">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    </div>
+                                                ) : (
+                                                    branches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center">
+                                        <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
+                                            Sync / Change
+                                        </Button>
+                                        <Button type="submit" size="sm" disabled={isSaving || !settings.githubRepo || !settings.githubBranch}>
+                                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Save Settings
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </main>
+            <AppFooter onPublish={function (): void {
+          throw new Error('Function not implemented.');
+        } } isPublishing={false} />
+        </div>
+    );
+}
+
+export default function SettingsPage() {
+    return (
+        <React.Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin" /></div>}>
+            <SettingsPageContent />
+        </React.Suspense>
+    )
+}
+
+    
+
+    

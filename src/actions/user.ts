@@ -1,0 +1,120 @@
+
+'use server';
+
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { cookies } from 'next/headers';
+import { getUserId } from '@/lib/auth-utils';
+import { FieldValue } from 'firebase-admin/firestore';
+
+// Tindakan ini menginisialisasi pengguna baru di Firestore.
+export async function initializeUser(userData: { uid: string, email?: string | null, displayName?: string | null, photoURL?: string | null }) {
+    try {
+        if (!adminDb) throw new Error('Firebase Admin not initialized');
+        const { uid, email, displayName, photoURL } = userData;
+
+        const userRef = adminDb.collection('users').doc(uid);
+        
+        // Hanya buat dokumen jika belum ada.
+        const userSnap = await userRef.get();
+        if (userSnap.exists) {
+            return { success: true, message: "Pengguna sudah ada." };
+        }
+
+        await userRef.set({
+            uid,
+            email,
+            displayName,
+            photoURL,
+            role: 'freeUser', // Tetapkan peran default
+            createdAt: FieldValue.serverTimestamp(),
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error initializing user: ", error);
+        return { success: false, error: error.message || "Failed to initialize user." };
+    }
+}
+
+
+// Tindakan ini dipanggil dari klien untuk mengatur cookie sesi
+export async function createSessionCookie(idToken: string) {
+    try {
+        if (!adminAuth) throw new Error('Firebase Admin tidak diinisialisasi');
+        const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 hari
+        const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+        cookies().set('__session', sessionCookie, {
+            maxAge: expiresIn,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to create session cookie:', error);
+        return { success: false, error: 'Failed to create session.' };
+    }
+}
+
+// Tindakan ini dipanggil untuk keluar dari pengguna
+export async function signOutUser() {
+    const sessionCookieName = '__session';
+    const cookieStore = cookies();
+    const sessionCookie = cookieStore.get(sessionCookieName)?.value;
+
+    // Selalu hapus cookie terlebih dahulu, terlepas dari apa yang terjadi selanjutnya.
+    // Ini memastikan pengguna keluar di klien segera.
+    cookieStore.delete(sessionCookieName);
+
+    if (sessionCookie) {
+        try {
+            if (!adminAuth) throw new Error('Firebase Admin tidak diinisialisasi');
+            
+            // Verifikasi cookie untuk mendapatkan UID pengguna untuk pencabutan token.
+            // checkRevoked diatur ke false karena klien mungkin sudah keluar,
+            // yang akan membatalkan token dan menyebabkan kesalahan yang tidak perlu di sini.
+            // Kita hanya perlu mendekodenya untuk mendapatkan UID.
+            const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, false);
+            
+            // Cabut token penyegaran untuk pengguna.
+            await adminAuth.revokeRefreshTokens(decodedClaims.sub);
+            
+        } catch (error) {
+            // Kesalahan ini diharapkan jika sesi pengguna sudah tidak valid
+            // (misalnya, dengan keluar di perangkat lain atau penyelesaian keluar sisi klien terlebih dahulu).
+            // Kita dapat dengan aman mengabaikannya karena tujuan utama (menghapus cookie) sudah selesai.
+            console.log('Info: Tidak dapat mencabut sesi di server, sesi mungkin sudah tidak valid.', error);
+        }
+    }
+
+    return { success: true }; // Selalu kembalikan keberhasilan karena cookie sudah dihapus.
+}
+
+
+/**
+ * Meningkatkan pengguna ke peran 'proUser'. 
+ * Fungsi ini dirancang untuk dipanggil dari lingkungan server yang aman (seperti penangan webhook)
+ * dan tidak secara langsung sebagai tindakan server dari klien.
+ */
+export async function upgradeToPro(userId: string, subscriptionId: string) {
+    try {
+        if (!adminDb) {
+            throw new Error('Firebase Admin not initialized');
+        }
+        
+        const userRef = adminDb.collection('users').doc(userId);
+        
+        await userRef.update({ 
+            role: 'proUser',
+            paypalSubscriptionId: subscriptionId,
+            upgradedAt: FieldValue.serverTimestamp()
+        });
+
+        console.log(`User ${userId} upgraded to proUser with subscription ${subscriptionId}.`);
+        return { success: true };
+
+    } catch (error: any) {
+        console.error(`Error upgrading user ${userId} to Pro:`, error);
+        return { success: false, error: error.message || "Failed to upgrade user role in database." };
+    }
+}
