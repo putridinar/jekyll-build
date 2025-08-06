@@ -257,7 +257,7 @@ layout: default
 `,
   '_includes/header.html': `<header class="bg-white dark:bg-gray-800 shadow-md py-4">
   <div class="container mx-auto px-4 flex justify-between items-center">
-    <a class="text-2xl font-bold text-gray-900 dark:text-white" rel="author" href="{{ site.baseurl }}{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+    <a class="text-2xl font-bold text-gray-900 dark:text-white" href="{{ site.baseurl }}{{ '/' | relative_url }}">{{ site.title | escape }}</a>
     
     <nav class="site-nav">
       <div class="hidden md:block">
@@ -271,14 +271,14 @@ layout: default
 `,
   '_includes/footer.html': `<footer class="w-full bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-700">
     <div class="container mx-auto py-5 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-      <p>&copy; {% capture current_year %}{{ 'now' | date: "%Y" }}{% endcapture %}{{ current_year }} {{ site.title }} &bull; Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
+      <p>&copy; {% capture current_year %}{{ 'now' | date: '%Y' }}{% endcapture %}{{ current_year }} {{ site.title }} &bull; Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
     </div>
   </footer>
 `,
   '_posts/2024-01-01-welcome-to-jekyll.md': `---
-title:  "Welcome to Jekyll!"
+title: Welcome to Jekyll!
 image: https://placehold.co/600x400?text=Jekyll\nWorld
-date:   2024-01-01 00:00:00 -0000
+date: 2024-01-01 00:00:00 -0000
 categories: jekyll update
 ---
 You’ll find this post in your \`_posts\` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run \`bundle exec jekyll serve\`, which launches a web server and auto-regenerates your site when a file is updated.
