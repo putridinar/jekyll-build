@@ -1,18 +1,20 @@
+
 'use client';
 
-import { FileCode, Folder, FolderPlus, Plus, Sparkles, Trash2, Upload, ChevronRight } from 'lucide-react';
+import { FileCode, Folder, FolderPlus, Sparkles, Upload, ChevronRight, Plus, Trash2, Pencil } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import type { FileNode } from '@/types';
 import { cn } from '@/lib/utils';
 import * as React from 'react';
 import { Button } from '../ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from 'firebase/auth';
 import { generateImage } from '@/actions/ai';
+import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type CustomUser = User & { role?: string };
 
@@ -20,14 +22,17 @@ type FileExplorerProps = {
   fileStructure: FileNode[];
   activeFile: string;
   onFileSelect: (path: string) => void;
-  onNewFile: (path: string) => void;
-  onNewFolder: () => void;
-  onFileDelete: (path: string) => void;
   onUploadClick: () => void;
   onAiImageGenerated: (data: { filename: string; content: string }) => void;
   user: CustomUser | null;
   expandedFolders: Set<string>;
   onFolderToggle: (path: string) => void;
+  onNewFile: (parentPath: string | null) => void;
+  onNewFolder: (parentPath: string | null) => void;
+  onFileDelete: (path: string) => void;
+  renamingPath: string | null;
+  onRename: (path: string, newName: string) => void;
+  setRenamingPath: (path: string | null) => void;
 };
 
 type AIGenerateButtonProps = {
@@ -37,6 +42,7 @@ type AIGenerateButtonProps = {
 
 function AIGenerateButton({ user, onImageGenerated }: AIGenerateButtonProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -47,8 +53,12 @@ function AIGenerateButton({ user, onImageGenerated }: AIGenerateButtonProps) {
     } else {
       toast({
         title: 'Upgrade to Pro',
-        description: 'AI image generation is a Pro feature. Please upgrade your account to use it.',
-        variant: 'destructive',
+        description: (
+            <div className="flex flex-col gap-4">
+                <p>AI image generation is a Pro feature.</p>
+                <Button onClick={() => router.push('/upgrade')}>Upgrade Now</Button>
+            </div>
+        ),
       });
     }
   };
@@ -125,166 +135,215 @@ function FileTree({
   nodes,
   activeFile,
   onFileSelect,
-  onNewFile,
-  onFileDelete,
   onUploadClick,
-  isMobile,
   user,
   onAiImageGenerated,
   expandedFolders,
   onFolderToggle,
+  onNewFile,
+  onNewFolder,
+  onFileDelete,
+  renamingPath,
+  onRename,
+  setRenamingPath,
   level = 0,
-}: {
-  nodes: FileNode[];
-  activeFile: string;
-  onFileSelect: (path: string) => void;
-  onNewFile: (path: string) => void;
-  onFileDelete: (path: string) => void;
-  onUploadClick: () => void;
-  isMobile: boolean;
-  user: CustomUser | null;
-  onAiImageGenerated: (data: { filename: string; content: string }) => void;
-  expandedFolders: Set<string>;
-  onFolderToggle: (path: string) => void;
-  level?: number;
-}) {
-  const sortedNodes = [...nodes].sort((a, b) => {
-    if (a.type === 'folder' && b.type === 'file') return -1;
-    if (a.type === 'file' && b.type === 'folder') return 1;
-    return a.name.localeCompare(b.name);
-  });
-  
-  return (
-    <>
-      {sortedNodes.map((node) => {
-        const isExpanded = expandedFolders.has(node.path);
-        return (
-          <div key={node.path}>
-            <div
-              className={cn(
-                'group relative flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium hover:bg-muted',
-                activeFile === node.path
-                  ? 'bg-muted text-foreground'
-                  : 'text-muted-foreground',
-              )}
-              style={{ paddingLeft: `${0.5 + level * 1}rem` }}
-              onClick={() => (node.type === 'folder' ? onFolderToggle(node.path) : onFileSelect(node.path))}
-            >
-              {node.type === 'folder' ? (
-                <>
-                  <ChevronRight className={cn('h-4 w-4 shrink-0 transition-transform duration-200', isExpanded && 'rotate-90')} />
-                  <Folder className="h-4 w-4" />
-                </>
-              ) : (
-                <FileCode className="h-4 w-4 ml-5" />
-              )}
-              <span className={cn("truncate", node.type === 'folder' && 'font-semibold text-foreground')}>{node.name}</span>
+}: Omit<FileExplorerProps, 'fileStructure'> & { level?: number; }) {
+    const isMobile = useIsMobile();
+    const sortedNodes = [...nodes].sort((a, b) => {
+        if (a.type === 'folder' && b.type === 'file') return -1;
+        if (a.type === 'file' && b.type === 'folder') return 1;
+        return a.name.localeCompare(b.name);
+    });
 
-              <div className="ml-auto flex items-center">
-                 {node.type === 'folder' && (
-                   <div className={cn("flex items-center", isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}>
-                      {node.path === 'assets/images' && (
-                          <AIGenerateButton user={user} onImageGenerated={onAiImageGenerated} />
-                      )}
-                      <Tooltip>
-                          <TooltipTrigger asChild>
-                              <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (node.path === 'assets/images') {
-                                      onUploadClick();
-                                    } else {
-                                      onNewFile(node.path);
-                                    }
-                                  }}
-                                  aria-label={node.path === 'assets/images' ? `Upload to ${node.name}` :`New file in ${node.name}`}
-                              >
-                                  {node.path === 'assets/images' ? <Upload className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                              </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{node.path === 'assets/images' ? 'Upload Image' : 'New File'}</p>
-                          </TooltipContent>
-                      </Tooltip>
-                   </div>
-                  )}
-                 {node.type === 'file' && (
-                   <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-7 w-7",
-                        isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onFileDelete(node.path);
-                      }}
-                      aria-label={`Delete ${node.name}`}
-                   >
-                      <Trash2 className="h-4 w-4" />
-                   </Button>
-                  )}
-              </div>
-            </div>
-            {node.type === 'folder' && node.children && isExpanded && (
-              <FileTree
-                nodes={node.children}
-                activeFile={activeFile}
-                onFileSelect={onFileSelect}
-                onNewFile={onNewFile}
-                onFileDelete={onFileDelete}
-                onUploadClick={onUploadClick}
-                isMobile={isMobile}
-                user={user}
-                onAiImageGenerated={onAiImageGenerated}
-                expandedFolders={expandedFolders}
-                onFolderToggle={onFolderToggle}
-                level={level + 1}
-              />
-            )}
-          </div>
-        )
-      })}
-    </>
-  );
+    const handleRenameSubmit = (e: React.FormEvent<HTMLFormElement>, path: string) => {
+        e.preventDefault();
+        const newName = (e.target as any).name.value;
+        onRename(path, newName);
+    };
+
+    return (
+        <>
+            {sortedNodes.map((node) => {
+                const isExpanded = expandedFolders.has(node.path);
+                const isRenaming = renamingPath === node.path;
+                
+                const itemContent = (
+                    <>
+                         {node.type === 'folder' ? (
+                            <>
+                                <ChevronRight className={cn('h-4 w-4 shrink-0 transition-transform duration-200', isExpanded && 'rotate-90')} />
+                                <Folder className="h-4 w-4" />
+                            </>
+                        ) : (
+                            <FileCode className="h-4 w-4 ml-5" />
+                        )}
+                        {isRenaming ? (
+                           <form onSubmit={(e) => handleRenameSubmit(e, node.path)} className="flex-1">
+                                <Input
+                                    type="text"
+                                    name="name"
+                                    defaultValue={node.name}
+                                    className="h-6 px-1 text-sm w-full"
+                                    autoFocus
+                                    onBlur={() => setRenamingPath(null)}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                           </form>
+                        ) : (
+                            <span 
+                                className={cn("truncate", node.type === 'folder' ? 'font-semibold text-foreground' : 'font-medium')}
+                                onDoubleClick={() => !isRenaming && setRenamingPath(node.path)}
+                            >
+                                {node.name}
+                            </span>
+                        )}
+                    </>
+                );
+
+                const item = (
+                    <div
+                        className={cn(
+                            'group relative flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-sm',
+                            'hover:bg-muted',
+                            (activeFile === node.path ? 'bg-muted text-foreground' : 'text-muted-foreground'),
+                        )}
+                        style={{ paddingLeft: `${0.5 + level * 1}rem` }}
+                        onClick={() => {
+                            if (isRenaming) return;
+                            if (node.type === 'folder') {
+                                onFolderToggle(node.path)
+                            } else {
+                                onFileSelect(node.path)
+                            }
+                        }}
+                    >
+                       {itemContent}
+
+                        <div className={cn(
+                            "ml-auto flex items-center", 
+                            isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                        )}>
+                             {node.type === 'folder' && node.path !== 'assets/images' && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onNewFile(node.path); }}>
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>New File</p></TooltipContent>
+                                </Tooltip>
+                             )}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setRenamingPath(node.path); }}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Rename</p></TooltipContent>
+                            </Tooltip>
+                            
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); onFileDelete(node.path); }}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Delete</p></TooltipContent>
+                            </Tooltip>
+
+                            {node.path === 'assets/images' && (
+                                <>
+                                    <AIGenerateButton user={user} onImageGenerated={onAiImageGenerated} />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onUploadClick();
+                                                }}
+                                                aria-label={`Upload to ${node.name}`}
+                                            >
+                                                <Upload className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Upload</p></TooltipContent>
+                                    </Tooltip>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                );
+
+                return (
+                    <div key={node.path}>
+                        {item}
+                        {node.type === 'folder' && node.children && isExpanded && (
+                            <FileTree
+                                nodes={node.children}
+                                activeFile={activeFile}
+                                onFileSelect={onFileSelect}
+                                onUploadClick={onUploadClick}
+                                user={user}
+                                onAiImageGenerated={onAiImageGenerated}
+                                expandedFolders={expandedFolders}
+                                onFolderToggle={onFolderToggle}
+                                onNewFile={onNewFile}
+                                onNewFolder={onNewFolder}
+                                onFileDelete={onFileDelete}
+                                renamingPath={renamingPath}
+                                onRename={onRename}
+                                setRenamingPath={setRenamingPath}
+                                level={level + 1}
+                            />
+                        )}
+                    </div>
+                )
+            })}
+        </>
+    );
 }
 
 export function FileExplorer({
   fileStructure,
   activeFile,
   onFileSelect,
-  onNewFile,
-  onFileDelete,
   onUploadClick,
   onAiImageGenerated,
   user,
   expandedFolders,
   onFolderToggle,
+  onNewFile,
+  onNewFolder,
+  onFileDelete,
+  renamingPath,
+  onRename,
+  setRenamingPath
 }: FileExplorerProps) {
-  const isMobile = useIsMobile();
   return (
-    <aside className="flex w-full flex-col border-r bg-background/80 backdrop-blur-sm md:w-72">
+    <aside className="z-10 flex w-full flex-col border-r bg-background md:w-72">
       <div className="flex h-14 shrink-0 items-center justify-between p-2 px-4">
         <h2 className="font-headline text-lg font-semibold">Workspace</h2>
       </div>
       <Separator />
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2 min-h-0">
         <FileTree
           nodes={fileStructure}
           activeFile={activeFile}
           onFileSelect={onFileSelect}
-          onNewFile={onNewFile}
-          onFileDelete={onFileDelete}
           onUploadClick={onUploadClick}
           onAiImageGenerated={onAiImageGenerated}
-          isMobile={isMobile}
           user={user}
           expandedFolders={expandedFolders}
           onFolderToggle={onFolderToggle}
+          onNewFile={onNewFile}
+          onNewFolder={onNewFolder}
+          onFileDelete={onFileDelete}
+          renamingPath={renamingPath}
+          onRename={onRename}
+          setRenamingPath={setRenamingPath}
         />
       </nav>
     </aside>

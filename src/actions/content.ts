@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { adminDb } from '@/lib/firebase-admin';
@@ -113,8 +112,8 @@ export async function publishContent(contentType: string, data: any) {
 
         let finalContent = data.content;
         let finalMainImage = data.mainImage;
-        const GITHUB_FILE_SIZE_LIMIT_MB = 1;
-        const GITHUB_FILE_SIZE_LIMIT_BYTES = GITHUB_FILE_SIZE_LIMIT_MB * 1024 * 1024;
+        const GITHUB_FILE_SIZE_LIMIT_MB = 0.8;
+        const GITHUB_FILE_SIZE_LIMIT_BYTES = GITHUB_FILE_SIZE_LIMIT_MB * 512 * 512;
 
         if (data.mainImage && data.mainImage.startsWith('data:image')) {
             const base64Data = data.mainImage.split(',')[1];
@@ -126,7 +125,7 @@ export async function publishContent(contentType: string, data: any) {
 
             // Jika gambar masih terlalu besar, ubah ukurannya dan kompres lagi.
             if (processedImageBuffer.length > GITHUB_FILE_SIZE_LIMIT_BYTES) {
-                 console.log(`Image still too large (${(processedImageBuffer.length / 1024 / 1024).toFixed(2)}MB). Resizing...`);
+                 console.log(`Image still too large (${(processedImageBuffer.length / 512 / 512).toFixed(2)}MB). Resizing...`);
                  processedImageBuffer = await sharp(imageBuffer)
                     .resize({ width: 1200 }) // Lebar yang wajar untuk gambar blog
                     .webp({ quality: 80 })
@@ -379,122 +378,10 @@ export async function scaffoldTemplate() {
         }
 
         const templateFiles = {
-            '_config.yml': `
-# Selamat datang di Jekyll!
-#
-# File konfigurasi ini dimaksudkan untuk pengaturan yang memengaruhi seluruh blog Anda, nilai-nilai
-# yang Anda harapkan untuk diatur sekali dan jarang diedit setelah itu. Jika Anda menemukan
-# diri Anda sering mengedit file ini, pertimbangkan untuk menggunakan file data Jekyll
-# fitur untuk data yang perlu Anda perbarui sesering mungkin.
-#
-# Untuk alasan teknis, file ini *TIDAK* dimuat ulang secara otomatis saat Anda menggunakan
-# 'bundle exec jekyll serve'. Jika Anda mengubah file ini, silakan mulai ulang proses server.
-
-# Pengaturan situs
-# Ini digunakan untuk mempersonalisasi situs baru Anda. Jika Anda melihat file HTML,
-# Anda akan melihatnya diakses melalui {{ site.title }}, {{ site.email }}, dan seterusnya.
-# Anda dapat membuat variabel khusus apa pun yang Anda inginkan, dan variabel tersebut akan dapat diakses
-# di template melalui {{ site.myvariable }}.
-title: Your Awesome Title
-email: your-email@example.com
-description: >- # ini berarti mengabaikan baris baru hingga "baseurl:"
-  Tulis deskripsi yang luar biasa untuk situs baru Anda di sini. Anda dapat mengedit ini
-  baris di _config.yml. Ini akan muncul di meta kepala dokumen Anda (untuk
-  Hasil pencarian Google) dan di deskripsi situs feed.xml Anda.
-baseurl: "" # subjalur situs Anda, mis. /blog
-url: "" # nama host & protokol dasar untuk situs Anda, mis. http://example.com
-twitter_username: jekyllrb
-github_username:  jekyll
-
-# Pengaturan build
-theme: minima
-plugins:
-  - jekyll-feed
-",
-            'index.h': "---
-layout: default
-title: Home
----
-
-# Selamat datang di Situs Baru Anda!
-
-Ini adalah beranda baru Anda, didukung oleh Jekyll Buildr dan GitHub Pages.
-
-Anda dapat menemukan file ini di \`index.md\`.
-
-## Apa Selanjutnya?
-
-*   **Buat Konten**: Kembali ke Jekyll Buildr dan buat "Posting Blog" baru.
-*   **Kustomisasi**: Edit tata letak di \`_layouts/default.html\` dan gaya di \`assets/css/style.css\`.
-*   **Pelajari Lebih Lanjut**: Lihat [dokumentasi Jekyll](https://jekyllrb.com/docs/) untuk mempelajari cara menyesuaikan situs Anda.
-",
-            '_layouts/default.html': "<!DOCTYPE html>
-<html lang=\"id-ID\">
-<head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-    <title>{{ page.title }} | {{ site.title }}</title>
-    <link rel=\"stylesheet\" href=\"/assets/css/style.css\">
-</head>
-<body>
-    {% include header.html %}
-    <main>
-        {{ content }}
-    </main>
-    {% include footer.html %}
-    <script src=\"/assets/js/main.js\"></script>
-</body>
-</html>",
-            '_includes/header.html': "<header>
-    <h1><a href=\"/\">{{ site.title | default: \"My Awesome Site\" }}</a></h1>
-    <nav>
-        <a href=\"/\">Home</a>
-        <a href=\"/about.md\">About</a>
-    </nav>
-</header>",
-            '_includes/footer.html': "<footer>
-    <p>&copy; ${new Date().getFullYear()} Your Name. Powered by Jekyll Buildr.</p>
-</footer>",
-            'assets/css/style.css': "body {
-    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    background-color: #f4f4f4;
-    color: #333;
-}
-main {
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 1rem;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-header, footer {
-    background: #333;
-    color: #fff;
-    padding: 1rem;
-    text-align: center;
-}
-header a {
-    color: #fff;
-    text-decoration: none;
-    margin: 0 10px;
-}
-h1, h2, h3 {
-    color: #333;
-}
-a {
-    color: #007bff;
-}
-",
-            'assets/js/main.js': "// JavaScript kustom Anda ada di sini
-console.log(\"Jekyll Buildr template is running!\");
-",
             '_posts/.gitkeep': '',
             'assets/images/.gitkeep': '',
             '_data/.gitkeep': '',
-        `};
+        };
 
         for (const [path, content] of Object.entries(templateFiles)) {
             await commitFileToRepo({
@@ -735,3 +622,4 @@ export async function createPullRequestAction(files: any[], prDetails: { title: 
         return { success: false, error: error.message };
     }
 }
+    

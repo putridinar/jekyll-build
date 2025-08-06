@@ -37,6 +37,9 @@ function SettingsPageContent() {
     const [isFetchingRepos, setIsFetchingRepos] = React.useState(false);
     const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
+    
+    // Gunakan ref untuk melacak pemuatan awal agar useEffect tidak berjalan
+    const isInitialMount = React.useRef(true);
 
     React.useEffect(() => {
         // Tangani umpan balik dari callback GitHub
@@ -138,25 +141,39 @@ function SettingsPageContent() {
         setSettings((prev: any) => ({ ...prev, githubBranch: branch }));
     };
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSaving(true);
-        try {
-            const result = await saveSettings({ 
-                githubRepo: settings.githubRepo, 
-                githubBranch: settings.githubBranch 
-            });
-            if (result.success) {
-                toast({ title: 'Settings saved successfully!' });
-            } else {
-                throw new Error(result.error || 'Failed to save settings.');
-            }
-        } catch (error: any) {
-            toast({ title: 'Error saving settings', description: error.message, variant: 'destructive' });
-        } finally {
-            setIsSaving(false);
+    // useEffect untuk penyimpanan otomatis
+    React.useEffect(() => {
+        // Jangan jalankan pada pemuatan pertama
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
         }
-    };
+
+        const handleAutoSave = async () => {
+            // Hanya simpan jika kedua nilai ada
+            if (settings.githubRepo && settings.githubBranch) {
+                setIsSaving(true);
+                try {
+                    const result = await saveSettings({
+                        githubRepo: settings.githubRepo,
+                        githubBranch: settings.githubBranch
+                    });
+                    if (result.success) {
+                        toast({ title: 'Pengaturan disimpan secara otomatis!' });
+                    } else {
+                        throw new Error(result.error || 'Gagal menyimpan pengaturan.');
+                    }
+                } catch (error: any) {
+                    toast({ title: 'Error saving settings', description: error.message, variant: 'destructive' });
+                } finally {
+                    setIsSaving(false);
+                }
+            }
+        };
+
+        handleAutoSave();
+    }, [settings.githubRepo, settings.githubBranch, toast]);
+
 
     const handleReconnect = () => {
         const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME;
@@ -180,7 +197,6 @@ function SettingsPageContent() {
             }
         } catch (error: any) {
             toast({ title: 'Kesalahan', description: error.message, variant: 'destructive' });
-        } finally {
             setIsDisconnecting(false);
         }
     };
@@ -272,11 +288,9 @@ function SettingsPageContent() {
                                 <SettingsIcon className="h-6 w-6" />
                                 <CardTitle className="font-headline text-2xl">GitHub Settings</CardTitle>
                                 </div>
-                                <Button type='button' variant="outline" size="sm" onClick={() => router.back()}>
-                                    kembali
-                                </Button>
+                                {isSaving && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                             </div>
-                            <CardDescription>Connect your GitHub account to publish your Jekyll site directly from the editor.</CardDescription>
+                            <CardDescription>Pilih repositori dan cabang untuk mempublikasikan situs Jekyll Anda. Pengaturan akan disimpan secara otomatis.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {!settings.installationId ? (
@@ -290,7 +304,7 @@ function SettingsPageContent() {
                                     </Button>
                                 </div>
                             ) : (
-                                <form onSubmit={handleSave} className="space-y-6">
+                                <form className="space-y-6">
                                     <div>
                                         <Label htmlFor="repo">Repository</Label>
                                         <Select
@@ -335,13 +349,9 @@ function SettingsPageContent() {
                                         </Select>
                                     </div>
                                     
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-start items-center pt-2">
                                         <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
-                                            Sync / Change
-                                        </Button>
-                                        <Button type="submit" size="sm" disabled={isSaving || !settings.githubRepo || !settings.githubBranch}>
-                                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Save Settings
+                                            Sync / Change Permissions
                                         </Button>
                                     </div>
                                 </form>
@@ -350,9 +360,7 @@ function SettingsPageContent() {
                     </Card>
                 </div>
             </main>
-            <AppFooter onPublish={function (): void {
-                throw new Error('Function not implemented.');
-            } } isPublishing={false} isCreatingPr={false} />
+            <AppFooter onPublish={undefined} isPublishing={false} isCreatingPr={false} />
         </div>
     );
 }
@@ -364,7 +372,3 @@ export default function SettingsPage() {
         </React.Suspense>
     )
 }
-
-    
-
-    

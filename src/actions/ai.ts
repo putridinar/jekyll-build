@@ -4,7 +4,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const ImageGenerationOutputSchema = z.object({
-  filename: z.string().describe("The suggested filename for the generated image, ending in .png, e.g., 'surreal-cat-123.png', ensuring the FILE SIZE DO NOT EXCEED 800 KILOBITES."),
+  filename: z.string().describe("The suggested filename for the generated image, ending in .png, e.g., 'surreal-cat-123.png'."),
   content: z.string().describe("The generated image as a base64 encoded data URI."),
 });
 type ImageGenerationOutput = z.infer<typeof ImageGenerationOutputSchema>;
@@ -31,13 +31,13 @@ const imageGenerationFlow = ai.defineFlow(
 
     const filename = `${prompt.toLowerCase().replace(/\s+/g, '-').slice(0, 50)}-${Date.now()}.png`;
 
-    if (!media) {
-      throw new Error("No media found to process.");
+    if (!media.url) {
+      throw new Error("No media url found to process.");
     }
     
     return {
       filename,
-      content: media.url || 'data:image/png;base64,',
+      content: media.url,
     };    
   }
 );

@@ -69,8 +69,8 @@ export default function LoginPage() {
                      <div className="flex justify-center mb-4">
                         <Icons.logo className="h-10 w-10"/>
                     </div>
-                    <CardTitle className="font-headline text-2xl">Welcome to Jekyll Boilerplate</CardTitle>
-                    <CardDescription>Sign in to continue to the editor</CardDescription>
+                    <CardTitle className="font-headline text-2xl">Welcome to Jekyll Buildr</CardTitle>
+                    <CardDescription>The modern way to build Jekyll sites.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {error && <p className="text-destructive text-center text-sm mb-4">{error}</p>}
