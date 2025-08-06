@@ -411,20 +411,20 @@ theme: minima
 plugins:
   - jekyll-feed
 ",
-            'index.md': "---
+            'index.h': "---
 layout: default
 title: Home
 ---
 
 # Selamat datang di Situs Baru Anda!
 
-Ini adalah beranda baru Anda, didukung oleh DreamNeuron dan GitHub Pages.
+Ini adalah beranda baru Anda, didukung oleh Jekyll Buildr dan GitHub Pages.
 
 Anda dapat menemukan file ini di \`index.md\`.
 
 ## Apa Selanjutnya?
 
-*   **Buat Konten**: Kembali ke DreamNeuron dan buat "Posting Blog" baru.
+*   **Buat Konten**: Kembali ke Jekyll Buildr dan buat "Posting Blog" baru.
 *   **Kustomisasi**: Edit tata letak di \`_layouts/default.html\` dan gaya di \`assets/css/style.css\`.
 *   **Pelajari Lebih Lanjut**: Lihat [dokumentasi Jekyll](https://jekyllrb.com/docs/) untuk mempelajari cara menyesuaikan situs Anda.
 ",
@@ -453,7 +453,7 @@ Anda dapat menemukan file ini di \`index.md\`.
     </nav>
 </header>",
             '_includes/footer.html': "<footer>
-    <p>&copy; ${new Date().getFullYear()} Your Name. Powered by DreamNeuron.</p>
+    <p>&copy; ${new Date().getFullYear()} Your Name. Powered by Jekyll Buildr.</p>
 </footer>",
             'assets/css/style.css': "body {
     font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;

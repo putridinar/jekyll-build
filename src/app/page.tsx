@@ -332,7 +332,7 @@ function HomePageContent() {
   const { toast } = useToast();
   const [fileStructure, setFileStructure] =
     React.useState(initialFileStructure);
-  const [activeFile, setActiveFile] = React.useState<string>('index.md');
+  const [activeFile, setActiveFile] = React.useState<string>('index.html');
   const [content, setContent] = React.useState('');
   const [isMounted, setIsMounted] = React.useState(false);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -534,7 +534,7 @@ function HomePageContent() {
     }
 
     if (activeFile === path) {
-      setActiveFile('index.md');
+      setActiveFile('index.html');
     }
      if (isMobile) {
       setIsSheetOpen(false);
