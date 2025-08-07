@@ -10,6 +10,7 @@ import { useAuth } from '@/components/app/auth-provider';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const proFeatures = [
     'Unlimited file creation',
@@ -78,7 +79,7 @@ export default function UpgradePage() {
     }
 
     return (
-        <>
+        <TooltipProvider>
         <div className="flex min-h-screen flex-col">
             <AppHeader />
             <main className="flex-1 px-3 bg-muted/20">
@@ -119,6 +120,6 @@ export default function UpgradePage() {
             </main>
             <AppFooter isPublishing={false} isCreatingPr={false} />
         </div>
-        </>
+        </TooltipProvider>
     );
 }

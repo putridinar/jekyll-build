@@ -58,9 +58,11 @@ export function CodeEditor({
       <div className="relative flex-1 overflow-hidden p-1">
         <Card className="h-full w-full rounded-lg border-0 shadow-none">
           <CardContent className="h-full overflow-y-auto p-0">
-             <div className="absolute top-2 right-2 z-10 text-muted-foreground">
-                <Save className={cn('h-5 w-5', isSaving && 'animate-pulse')} />
-             </div>
+            {isSaving && (
+              <div className="absolute top-2 right-2 z-10 text-muted-foreground">
+                  <Save className="h-5 w-5 animate-pulse" />
+              </div>
+            )}
              <Editor
               value={content}
               onValueChange={setContent}

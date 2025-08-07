@@ -143,11 +143,13 @@ export async function publishContent(contentType: string, data: any) {
             
             finalMainImage = `/${imagePath}`;
         }
-        // Ensure content is sanitized and ready for Markdown
+        
         const date = new Date().toISOString().split('T')[0];
         const filePath = `_posts/${date}-${data.slug}.md`;
         const commitMessage = `feat: publish post "${data.title}"`;
+
         const frontmatter = `---
+title: "${data.title}"
 author: "${data.author || ''}"
 date: ${new Date().toISOString()}
 categories: ${data.categories || ''}
@@ -165,6 +167,7 @@ image: "${finalMainImage || ''}"
             branch: settings.githubBranch
         });
         
+        // Update the post in Firestore with the final image path
         if (finalMainImage !== data.mainImage) {
             const userId = await getUserId();
             const docRef = getUserContentDoc(userId, contentType, data.slug);
@@ -172,7 +175,8 @@ image: "${finalMainImage || ''}"
         }
         
         revalidatePath('/');
-        return { success: true, slug: data.slug, savedData: { mainImage: finalMainImage } };
+        return { success: true, slug: data.slug, savedData: { mainImage: finalMainImage, filename: `${date}-${data.slug}.md`, content: markdownContent } };
+
 
     } catch (error: any) {
         console.error("Error publishing content:", error);
@@ -625,4 +629,6 @@ export async function createPullRequestAction(files: any[], prDetails: { title: 
         return { success: false, error: error.message };
     }
 }
+    
+
     

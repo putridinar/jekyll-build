@@ -101,9 +101,11 @@ function ImageUpload({ field }: { field: any }) {
 export function PostEditor({
   open,
   onOpenChange,
+  onPostPublished,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onPostPublished: (data: { filename: string; content: string }) => void;
 }) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -139,11 +141,12 @@ export function PostEditor({
         
         const result = await publishContent('posts', postData);
 
-        if (result.success) {
+        if (result.success && 'savedData' in result && result.savedData) {
             toast({
                 title: 'Post Published!',
                 description: 'Your post has been successfully published to GitHub.',
             });
+            onPostPublished(result.savedData);
             form.reset();
             onOpenChange(false);
         } else {

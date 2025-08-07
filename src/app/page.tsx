@@ -1021,6 +1021,36 @@ function HomePageContent() {
     });
   }, []);
 
+  const handlePostPublished = React.useCallback((postData: { filename: string; content: string }) => {
+    const { filename, content: newContent } = postData;
+    const postPath = `_posts/${filename}`;
+
+    const newFileNode: FileNode = {
+      name: filename,
+      path: postPath,
+      type: 'file',
+    };
+
+    setFileStructure(prevStructure => {
+      return recursiveFileAction(prevStructure, '_posts', (nodes) => {
+        // Hindari duplikasi jika file sudah ada
+        if (nodes.some(n => n.path === postPath)) {
+          return nodes;
+        }
+        return [...nodes, newFileNode];
+      }, null);
+    });
+
+    setFileContents(prevContents => ({
+      ...prevContents,
+      [postPath]: newContent,
+    }));
+    
+    // Buka file yang baru dipublikasikan
+    setActiveFile(postPath);
+    setContent(newContent);
+  }, []);
+
   React.useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
@@ -1210,7 +1240,11 @@ function HomePageContent() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <PostEditor open={isPostEditorOpen} onOpenChange={setIsPostEditorOpen} />
+        <PostEditor 
+            open={isPostEditorOpen} 
+            onOpenChange={setIsPostEditorOpen}
+            onPostPublished={handlePostPublished}
+        />
       </div>
     </TooltipProvider>
   );
