@@ -77,7 +77,7 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
           </Tooltip>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl">Welcome to Jekyll Flow!</DialogTitle>
+              <DialogTitle className="font-headline text-2xl">Welcome to Jekyll Buildr!</DialogTitle>
               <DialogDescription>
                 Here is a quick guide to get you started.
               </DialogDescription>
