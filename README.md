@@ -28,7 +28,7 @@ Welcome to Jekyll Buildr, a modern, web-based editor designed to streamline your
 
 1.  **Login**: Sign in to the application using your GitHub account.
 2.  **Connect GitHub**: Navigate to the **Settings** page.
-3.  **Install App**: Click "Connect with GitHub" to install the Jekyll Flow GitHub App on your desired repositories.
+3.  **Install App**: Click "Connect with GitHub" to install the Jekyll Buildr GitHub App on your desired repositories.
 4.  **Select Repo & Branch**: Once connected, select the repository and the primary branch you want to work on.
 5.  **Edit & Create**: Return to the main editor page. You can now edit existing files or create new files and folders.
 6.  **Use AI**:

@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A blog post generator AI flow.
+ * @fileOverview A blog post generator AI Buildr.
  *
  * - generatePostContent - A function that handles the post generation process.
  * - PostContentOutput - The return type for the generatePostContent function.

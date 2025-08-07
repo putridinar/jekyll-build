@@ -82,7 +82,7 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
           </Tooltip>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl">Welcome to Jekyll Flow!</DialogTitle>
+              <DialogTitle className="font-headline text-2xl">Welcome to Jekyll Buildr!</DialogTitle>
               <DialogDescription>
                 Here is a quick guide to get you started.
               </DialogDescription>
@@ -101,7 +101,7 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
               <ol>
                 <li><strong>Login</strong>: Sign in to the application using your GitHub account.</li>
                 <li><strong>Connect GitHub</strong>: Navigate to the <strong>Settings</strong> page.</li>
-                <li><strong>Install App</strong>: Click "Connect with GitHub" to install the Jekyll Flow GitHub App on your desired repositories.</li>
+                <li><strong>Install App</strong>: Click "Connect with GitHub" to install the Jekyll Buildr GitHub App on your desired repositories.</li>
                 <li><strong>Select Repo & Branch</strong>: Once connected, select the repository and the primary branch you want to work on from the dropdowns.</li>
                 <li><strong>Edit & Create</strong>: Return to the main editor page. You can now edit existing files or create new files and folders.</li>
                 <li>

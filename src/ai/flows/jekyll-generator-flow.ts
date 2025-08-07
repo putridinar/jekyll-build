@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A Jekyll component generator AI flow.
+ * @fileOverview A Jekyll component generator AI Buildr.
  *
  * - generateJekyllComponent - A function that handles the Jekyll component generation process.
  * - JekyllComponentOutput - The return type for the generateJekyllComponent function.
