@@ -2,9 +2,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import sharp from 'sharp';
 
 const ImageGenerationOutputSchema = z.object({
-  filename: z.string().describe("The suggested filename for the generated image, ending in .png, e.g., 'surreal-cat-123.png'."),
+  filename: z.string().describe("The suggested filename for the generated image, ending in .webp, e.g., 'surreal-cat-123.webp'."),
   content: z.string().describe("The generated image as a base64 encoded data URI."),
 });
 type ImageGenerationOutput = z.infer<typeof ImageGenerationOutputSchema>;
@@ -24,21 +25,30 @@ const imageGenerationFlow = ai.defineFlow(
       },
     });
 
-    if (!media) {
+    if (!media || !media.url) {
       console.error("No media found in the generated message.");
       throw new Error("Image generation failed: No image was returned.");
-    }
-
-    const filename = `${prompt.toLowerCase().replace(/\s+/g, '-').slice(0, 50)}-${Date.now()}.png`;
-
-    if (!media.url) {
-      throw new Error("No media url found to process.");
-    }
+    }    
+    // Konversi dari data URI ke buffer
+    const base64Data = media.url.split(',')[1];
+    const imageBuffer = Buffer.from(base64Data, 'base64');
     
+    // Proses dengan sharp: ubah ukuran ke 512x512 dan kompres ke WebP
+    const processedImageBuffer = await sharp(imageBuffer)
+        .resize(512, 512)
+        .webp({ quality: 80 }) // Kualitas 80 adalah keseimbangan yang baik
+        .toBuffer();
+
+    // Buat nama file baru dengan ekstensi .webp
+    const filename = `${prompt.toLowerCase().replace(/\s+/g, '-').slice(0, 50)}-${Date.now()}.webp`;
+    
+    // Konversi buffer yang diproses kembali ke data URI
+    const processedDataUri = `data:image/webp;base64,${processedImageBuffer.toString('base64')}`;
+    // Kembalikan nama file dan konten sebagai data URI
     return {
       filename,
-      content: media.url,
-    };    
+      content: processedDataUri,
+    };
   }
 );
 
