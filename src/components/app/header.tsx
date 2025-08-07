@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, LogOut, PlusCircle, Settings } from 'lucide-react';
+import { Crown, HelpCircle, LogOut, PlusCircle, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Icons } from '@/components/icons';
 import { useAuth } from './auth-provider';
@@ -17,6 +17,14 @@ import {
   DropdownMenuGroup,
 } from '../ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 type AppHeaderProps = {
   children?: React.ReactNode;
@@ -53,6 +61,63 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
                 </TooltipContent>
             </Tooltip>
         )}
+        <Dialog>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <HelpCircle className="h-5 w-5" />
+                  <span className="sr-only">Help</span>
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Help & Guide</p>
+            </TooltipContent>
+          </Tooltip>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">Welcome to Jekyll Flow!</DialogTitle>
+              <DialogDescription>
+                Here is a quick guide to get you started.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto pr-4">
+              <h3 className="font-headline">Key Features</h3>
+              <ul>
+                <li><strong>In-Browser Code Editor</strong>: A full-featured code editor with syntax highlighting right in your browser.</li>
+                <li><strong>File Management</strong>: A familiar file explorer to navigate, create, rename, and delete files and folders.</li>
+                <li><strong>AI Component Generation</strong>: Describe a component you need and let the AI generate the Jekyll-compliant code for you.</li>
+                <li><strong>AI Image Generation</strong>: Generate unique images for your posts by simply providing a text prompt.</li>
+                <li><strong>Direct GitHub Integration</strong>: Push changes directly to a branch or create a pull request for a safer, review-based workflow.</li>
+                <li><strong>Pro Tier Subscriptions</strong>: Unlock advanced features like unlimited AI usage by upgrading to a Pro account.</li>
+              </ul>
+              <h3 className="font-headline">Getting Started</h3>
+              <ol>
+                <li><strong>Login</strong>: Sign in to the application using your GitHub account.</li>
+                <li><strong>Connect GitHub</strong>: Navigate to the <strong>Settings</strong> page.</li>
+                <li><strong>Install App</strong>: Click "Connect with GitHub" to install the Jekyll Flow GitHub App on your desired repositories.</li>
+                <li><strong>Select Repo & Branch</strong>: Once connected, select the repository and the primary branch you want to work on from the dropdowns.</li>
+                <li><strong>Edit & Create</strong>: Return to the main editor page. You can now edit existing files or create new files and folders.</li>
+                <li>
+                  <strong>Use AI</strong>:
+                  <ul>
+                    <li>Click the <strong>✨ (Sparkles)</strong> icon in the editor header to generate a Jekyll component from a text prompt.</li>
+                    <li>In the `assets/images` folder, use the <strong>✨ (Sparkles)</strong> icon to generate an image from a text prompt.</li>
+                    <li>When creating a new post, use the "Generate with AI" button to create content from a title.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Publish</strong>:
+                  <ul>
+                    <li>Use the <strong>Push to GitHub</strong> button to commit your changes directly to the selected branch.</li>
+                    <li>Use the <strong>Create Pull Request</strong> button for a safer workflow, which will create a new branch and a PR for you to review and merge on GitHub.</li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          </DialogContent>
+        </Dialog>
         <ThemeToggle />
         {user && (
           <DropdownMenu>
