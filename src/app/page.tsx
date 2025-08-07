@@ -57,6 +57,7 @@ import {
 import {Textarea} from '@/components/ui/textarea';
 import { checkAndRecordComponentGeneration } from '@/actions/user';
 import { PostEditor } from '@/components/app/post-editor';
+import { useRouter } from 'next/navigation';
 
 const initialFileStructure: FileNode[] = [
   {
@@ -327,6 +328,7 @@ function HomePageContent() {
   const isMobile = useIsMobile();
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const {user, loading} = useAuth();
+  const router = useRouter();
   const [isPostEditorOpen, setIsPostEditorOpen] = React.useState(false);
 
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
@@ -546,7 +548,7 @@ function HomePageContent() {
         return newStructure;
       });
     },
-    [fileStructure]
+    []
   );
 
   const handleDelete = React.useCallback(
@@ -1024,7 +1026,13 @@ function HomePageContent() {
     });
   }, []);
 
-  if (loading) {
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+  
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>

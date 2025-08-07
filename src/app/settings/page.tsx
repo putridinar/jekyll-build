@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { useAlert } from '@/contexts/AlertContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 
 const GITHUB_APP_NAME = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
@@ -37,7 +38,12 @@ function SettingsPageContent() {
     const [isFetchingRepos, setIsFetchingRepos] = React.useState(false);
     const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
-    
+
+    React.useEffect(() => {
+        if (!authLoading && !user) {
+            router.push('/login');
+        }
+    }, [user, authLoading, router]);
 
     React.useEffect(() => {
         const status = searchParams.get('status');
@@ -106,8 +112,10 @@ function SettingsPageContent() {
 
 
     React.useEffect(() => {
-        fetchInitialData();
-    }, [fetchInitialData]);
+        if (user) {
+            fetchInitialData();
+        }
+    }, [user, fetchInitialData]);
 
     const handleRepoChange = async (repoFullName: string) => {
         setSettings((prev: any) => ({ ...prev, githubRepo: repoFullName, githubBranch: '' }));
@@ -118,7 +126,7 @@ function SettingsPageContent() {
     };
 
     const handleBranchChange = async (branch: string) => {
-        const newSettings = { ...settings, githubBranch: branch };
+        const newSettings = { ...settings, githubRepo: settings.githubRepo, githubBranch: branch };
         setSettings(newSettings);
 
         if (newSettings.githubRepo && branch) {
@@ -174,7 +182,7 @@ function SettingsPageContent() {
         }
     };
 
-     if (authLoading || loading) {
+     if (authLoading || loading || !user) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin" />
@@ -182,12 +190,8 @@ function SettingsPageContent() {
         );
     }
 
-    if (!user) {
-        router.push('/login');
-        return null;
-    }
-
     return (
+        <TooltipProvider>
         <div className="flex min-h-screen flex-col">
             <AppHeader />
             <main className="flex-1 bg-muted/20 p-4 sm:p-6 md:p-8">
@@ -342,6 +346,7 @@ function SettingsPageContent() {
             </main>
             <AppFooter isPublishing={false} isCreatingPr={false} />
         </div>
+        </TooltipProvider>
     );
 }
 
