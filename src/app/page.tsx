@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/dialog';
 import {Textarea} from '@/components/ui/textarea';
 import { checkAndRecordComponentGeneration } from '@/actions/user';
+import { PostEditor } from '@/components/app/post-editor';
 
 const initialFileStructure: FileNode[] = [
   {
@@ -326,6 +327,7 @@ function HomePageContent() {
   const isMobile = useIsMobile();
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const {user, loading} = useAuth();
+  const [isPostEditorOpen, setIsPostEditorOpen] = React.useState(false);
 
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
     new Set([
@@ -1052,7 +1054,7 @@ function HomePageContent() {
   return (
     <TooltipProvider>
       <div className="flex h-screen w-full flex-col">
-        <AppHeader>
+        <AppHeader onNewPost={() => setIsPostEditorOpen(true)}>
           {isMobile && (
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
@@ -1129,7 +1131,7 @@ function HomePageContent() {
                         <p>Generate with AI</p>
                       </TooltipContent>
                     </Tooltip>
-                    <DialogContent className="sm:max-w-[425px] w-96 md:w-full">
+                    <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
                         <DialogTitle className="font-headline">
                           Generate Jekyll Component
@@ -1206,6 +1208,7 @@ function HomePageContent() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <PostEditor open={isPostEditorOpen} onOpenChange={setIsPostEditorOpen} />
       </div>
     </TooltipProvider>
   );

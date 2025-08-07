@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown, LogOut, Settings } from 'lucide-react';
+import { Crown, LogOut, PlusCircle, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Icons } from '@/components/icons';
 import { useAuth } from './auth-provider';
@@ -16,8 +16,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from '../ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
-export function AppHeader({ children }: { children?: React.ReactNode }) {
+type AppHeaderProps = {
+  children?: React.ReactNode;
+  onNewPost?: () => void;
+};
+
+export function AppHeader({ children, onNewPost }: AppHeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -33,7 +39,20 @@ export function AppHeader({ children }: { children?: React.ReactNode }) {
         <Icons.logo className="h-6 w-6" />
         <h1 className="font-headline text-xl font-bold">Jekyll Buildr</h1>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+         {onNewPost && (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={onNewPost}>
+                        <PlusCircle className="h-5 w-5" />
+                        <span className="sr-only">New Post</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>New Post</p>
+                </TooltipContent>
+            </Tooltip>
+        )}
         <ThemeToggle />
         {user && (
           <DropdownMenu>

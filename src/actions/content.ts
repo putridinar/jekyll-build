@@ -113,24 +113,16 @@ export async function publishContent(contentType: string, data: any) {
         let finalContent = data.content;
         let finalMainImage = data.mainImage;
         const GITHUB_FILE_SIZE_LIMIT_MB = 0.8;
-        const GITHUB_FILE_SIZE_LIMIT_BYTES = GITHUB_FILE_SIZE_LIMIT_MB * 512 * 512;
+        const GITHUB_FILE_SIZE_LIMIT_BYTES = GITHUB_FILE_SIZE_LIMIT_MB * 1024 * 1024;
 
         if (data.mainImage && data.mainImage.startsWith('data:image')) {
             const base64Data = data.mainImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
             
             let processedImageBuffer = await sharp(imageBuffer)
+                .resize({ width: 512, height: 512, fit: 'inside' })
                 .webp({ quality: 80 })
                 .toBuffer();
-
-            // Jika gambar masih terlalu besar, ubah ukurannya dan kompres lagi.
-            if (processedImageBuffer.length > GITHUB_FILE_SIZE_LIMIT_BYTES) {
-                 console.log(`Image still too large (${(processedImageBuffer.length / 512 / 512).toFixed(2)}MB). Resizing...`);
-                 processedImageBuffer = await sharp(imageBuffer)
-                    .resize({ width: 1200 }) // Lebar yang wajar untuk gambar blog
-                    .webp({ quality: 80 })
-                    .toBuffer();
-            }
 
             if (processedImageBuffer.length > GITHUB_FILE_SIZE_LIMIT_BYTES) {
                  throw new Error(`Image is too large to publish to GitHub even after compression and resizing. Please use a smaller image.`);
@@ -151,16 +143,18 @@ export async function publishContent(contentType: string, data: any) {
             
             finalMainImage = `/${imagePath}`;
         }
-        
-        const filePath = `_posts/${data.slug}.md`;
+        // Ensure content is sanitized and ready for Markdown
+        const date = new Date().toISOString().split('T')[0];
+        const filePath = `_posts/${date}-${data.slug}.md`;
         const commitMessage = `feat: publish post "${data.title}"`;
-        const markdownContent = `---
-title: "${data.title}"
-slug: "${data.slug}"
-mainImage: "${finalMainImage || ''}"
----
+        const frontmatter = `---
+author: "${data.author || ''}"
+date: ${new Date().toISOString()}
+categories: ${data.categories || ''}
+image: "${finalMainImage || ''}"
+---`;
 
-${finalContent}`;
+        const markdownContent = `${frontmatter}\n\n${finalContent}`;
 
         await commitFileToRepo({
             repoFullName: settings.githubRepo,
