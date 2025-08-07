@@ -30,7 +30,10 @@ import {
   publishTemplateFiles,
   getSettings,
   createPullRequestAction,
+  saveTemplateState,
+  getTemplateState,
 } from '@/actions/content';
+import {useDebouncedCallback} from 'use-debounce';
 import {CodeEditor} from '@/components/app/code-editor';
 import {
   AlertDialog,
@@ -335,12 +338,62 @@ function HomePageContent() {
     }
   }, [isMobile]);
 
+  React.useEffect(() => {
+    const loadState = async () => {
+      if (user) {
+        const result = await getTemplateState();
+        if (result.success && result.data) {
+          const { fileStructure, activeFile, fileContents, expandedFolders } = result.data;
+          setFileStructure(fileStructure);
+          setActiveFile(activeFile);
+          setFileContents(fileContents);
+          setExpandedFolders(new Set(expandedFolders));
+          setContent(fileContents[activeFile] ?? '');
+          toast({
+            title: 'State Restored',
+            description: 'Your previous session has been restored.',
+          });
+        }
+      }
+    };
+    loadState();
+  }, [user, toast]);
+
   const [isPublishing, setIsPublishing] = React.useState(false);
   const [isCreatingPr, setIsCreatingPr] = React.useState(false);
   const [deletingPath, setDeletingPath] = React.useState<string | null>(null);
   const [generateDialogOpen, setGenerateDialogOpen] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
+
+  const debouncedSave = useDebouncedCallback(async (stateToSave) => {
+    try {
+      await saveTemplateState(stateToSave);
+      toast({
+        title: 'Auto-saved!',
+        description: 'Your changes have been saved automatically.',
+      });
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      toast({
+        title: 'Auto-save Failed',
+        description: 'Could not save your changes.',
+        variant: 'destructive',
+      });
+    }
+  }, 2000);
+
+  React.useEffect(() => {
+    if (loading || !user) return;
+
+    const stateToSave = {
+      fileStructure,
+      activeFile,
+      fileContents,
+      expandedFolders: Array.from(expandedFolders),
+    };
+    debouncedSave(stateToSave);
+  }, [fileStructure, activeFile, fileContents, expandedFolders, debouncedSave, loading, user]);
 
   // Unified content state for the editor
   const [content, setContent] = React.useState(

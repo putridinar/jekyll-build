@@ -415,13 +415,22 @@ export async function scaffoldTemplate() {
 export async function saveTemplateState(state: any) {
     try {
         const userId = await getUserId();
- if (!adminDb) {
- throw new Error('Firestore not initialized');
- }
+        if (!adminDb) {
+            throw new Error('Firestore not initialized');
+        }
         const stateRef = getTemplateStateDoc(userId);
-        await stateRef.set({
+
+        // Ensure expandedFolders is an array for Firestore compatibility
+        const stateToSave = {
             ...state,
-            savedAt: FieldValue.serverTimestamp()
+            expandedFolders: Array.isArray(state.expandedFolders)
+                ? state.expandedFolders
+                : Array.from(state.expandedFolders || []),
+        };
+
+        await stateRef.set({
+            ...stateToSave,
+            savedAt: FieldValue.serverTimestamp(),
         });
         return { success: true };
     } catch (error: any) {
