@@ -12,7 +12,6 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,12 +25,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, UploadCloud } from 'lucide-react';
+import { Loader2, Sparkles, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent } from '@/actions/content';
 import Image from 'next/image';
 import { useAuth } from './auth-provider';
 import { cn } from '@/lib/utils';
+import { generatePostContent } from '@/ai/flows/post-generator-flow';
+import { checkAndRecordPostGeneration } from '@/actions/user';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -108,6 +109,7 @@ export function PostEditor({
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isGenerating, setIsGenerating] = React.useState(false);
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(formSchema),
@@ -146,7 +148,11 @@ export function PostEditor({
             onOpenChange(false);
         } else {
           if ('error' in result) {
-            console.error(result.error);
+            toast({
+              variant: 'destructive',
+              title: 'Publishing Failed',
+              description: result.error,
+            });
           }
         }
 
@@ -160,6 +166,52 @@ export function PostEditor({
       setIsSubmitting(false);
     }
   };
+
+  const handleGenerate = async () => {
+    const title = form.getValues('title');
+    if (!title) {
+        toast({
+            variant: 'destructive',
+            title: 'Title is required',
+            description: 'Please enter a title to generate content.',
+        });
+        return;
+    }
+
+    setIsGenerating(true);
+    toast({ title: 'Generating AI Content...', description: 'Please wait, this can take a moment.'});
+
+    try {
+        // Step 1: Check generation permission
+        const checkResult = await checkAndRecordPostGeneration();
+        if (!checkResult.success) {
+            toast({
+                variant: 'destructive',
+                title: 'Limit Reached',
+                description: checkResult.error,
+            });
+            setIsGenerating(false);
+            return;
+        }
+
+        // Step 2: Proceed with content generation
+        const result = await generatePostContent(title);
+        form.setValue('categories', result.categories);
+        form.setValue('content', result.content);
+        toast({
+            title: 'Content Generated!',
+            description: 'The AI has filled in the categories and content for you.',
+        });
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'AI Generation Failed',
+            description: error.message,
+        });
+    } finally {
+        setIsGenerating(false);
+    }
+  }
 
   const sheetSide = isMobile ? 'bottom' : 'right';
   const contentClass = isMobile ? 'h-full' : 'w-full max-w-2xl';
@@ -249,11 +301,16 @@ export function PostEditor({
             </form>
           </Form>
         </div>
-        <SheetFooter className="p-6 bg-background border-t">
-          <SheetClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </SheetClose>
-          <Button type="submit" form="post-form" disabled={isSubmitting}>
+        <SheetFooter className="px-4 py-4 flex justify-between items-center bg-background border-t">
+          <Button variant="outline" onClick={handleGenerate} disabled={isSubmitting || isGenerating}>
+            {isGenerating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            Generate with AI
+          </Button>
+          <Button type="submit" form="post-form" disabled={isSubmitting || isGenerating}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Publish Post
           </Button>
@@ -262,5 +319,3 @@ export function PostEditor({
     </Sheet>
   );
 }
-
-    

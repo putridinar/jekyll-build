@@ -173,3 +173,58 @@ export async function checkAndRecordComponentGeneration() {
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Checks if a user is allowed to generate AI post content.
+ * Free users are limited to 1 generation per 24 hours.
+ * If allowed, it also records the generation timestamp.
+ */
+export async function checkAndRecordPostGeneration() {
+    try {
+        const userId = await getUserId();
+        if (!adminDb) throw new Error('Firestore not initialized');
+
+        const userRef = adminDb.collection('users').doc(userId);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+
+        if (!userData) {
+            throw new Error("User data not found.");
+        }
+
+        // Pro users can generate without limits.
+        if (userData.role === 'proUser') {
+            return { success: true };
+        }
+
+        // Logic for free users
+        const lastGenTimestamp = userData.lastPostGenerationAt;
+        const now = Date.now();
+
+        if (lastGenTimestamp) {
+            const twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
+            const timeSinceLastGen = now - lastGenTimestamp.toMillis();
+            
+            if (timeSinceLastGen < twentyFourHoursInMillis) {
+                const timeLeft = twentyFourHoursInMillis - timeSinceLastGen;
+                const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                return { 
+                    success: false, 
+                    error: `You have reached your daily AI post generation limit. Please try again in ${hoursLeft}h ${minutesLeft}m.` 
+                };
+            }
+        }
+
+        // If the user is allowed, record the new generation time.
+        await userRef.update({
+            lastPostGenerationAt: FieldValue.serverTimestamp(),
+        });
+        
+        return { success: true };
+
+    } catch (error: any) {
+        console.error("Error in checkAndRecordPostGeneration:", error);
+        return { success: false, error: error.message };
+    }
+}
