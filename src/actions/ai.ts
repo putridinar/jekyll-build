@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -28,7 +29,8 @@ const imageGenerationFlow = ai.defineFlow(
     if (!media || !media.url) {
       console.error("No media found in the generated message.");
       throw new Error("Image generation failed: No image was returned.");
-    }    
+    }
+    
     // Konversi dari data URI ke buffer
     const base64Data = media.url.split(',')[1];
     const imageBuffer = Buffer.from(base64Data, 'base64');
@@ -44,11 +46,11 @@ const imageGenerationFlow = ai.defineFlow(
     
     // Konversi buffer yang diproses kembali ke data URI
     const processedDataUri = `data:image/webp;base64,${processedImageBuffer.toString('base64')}`;
-    // Kembalikan nama file dan konten sebagai data URI
+
     return {
       filename,
       content: processedDataUri,
-    };
+    };    
   }
 );
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -12,7 +13,6 @@ import 'prismjs/components/prism-ruby';
 import { Card, CardContent } from '../ui/card';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// Tambahkan bahasa lain sesuai kebutuhan
 
 type CodeEditorProps = {
   activeFile: string;

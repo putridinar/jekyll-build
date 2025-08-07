@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -19,7 +20,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {Button} from '@/components/ui/button';
-import {PanelLeft, Sparkles, Plus, FolderPlus, Trash2} from 'lucide-react';
+import {PanelLeft, Sparkles, Plus, FolderPlus} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {AppFooter} from '@/components/app/footer';
 import {generateJekyllComponent} from '@/ai/flows/jekyll-generator-flow';
@@ -127,7 +128,7 @@ const initialFileStructure: FileNode[] = [
 ];
 
 const initialFileContents: {[key: string]: string} = {
-  '_config.yml': `title: My Jekyll Site
+  '_config.yml': `title: My Awesome Jekyll Site
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
 baseurl: "" # subpath situs Anda, mis. /blog
@@ -218,9 +219,9 @@ permalink: /
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title | escape }} | {{ site.title | escape }}</title>
     <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | normalize_whitespace | truncate: 160 | escape }}">
-    <script src='https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4'></script>
-    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
-    <link rel="canonical" href="{{ page.url | replace:'index.html', '' | absolute_url }}">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
+    <link rel="canonical" href="{{ page.url | replace:'index.html','' | absolute_url }}">
   </head>
   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
     {% include header.html %}
@@ -240,12 +241,12 @@ layout: default
 ---
 <article class="post h-entry px-4 py-8 max-w-3xl mx-auto" itemscope itemtype="http://schema.org/BlogPosting">
 
-    <h2 class="mb-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
+        <h2 class="mb-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
           {{ page.title }}
-    </h2>
+        </h2>
 
       {% if page.image %}
-        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 object-cover">
+        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 rounded-md object-cover">
       {% endif %}
 
   <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
@@ -293,7 +294,6 @@ layout: default
 title: "Welcome to Jekyll!"
 image: "https://placehold.co/600x400?text=Jekyll-World"
 date: 2024-01-01 00:00:00 -0000
-author: "Jekyll-Buildr"
 categories: jekyll update
 ---
 You’ll find this post in your \`_posts\` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run \`bundle exec jekyll serve\`, which launches a web server and auto-regenerates your site when a file is updated.
@@ -309,7 +309,7 @@ To add new posts, simply add a file in the \`_posts\` directory that follows the
 `,
   'assets/js/script.js': `/* Add your Javascript code here */
 `,
-  'Gemfile': `source "https://rubygems.org"
+  Gemfile: `source "https://rubygems.org"
 
 gem "jekyll"
 gem "jekyll-feed"
@@ -347,6 +347,8 @@ function HomePageContent() {
   );
 
   React.useEffect(() => {
+    // This effect runs once on mount. If it's mobile, it collapses all folders.
+    // This is more reliable than setting it in the initial state.
     if (isMobile) {
       setExpandedFolders(new Set());
     }
@@ -1152,7 +1154,8 @@ function HomePageContent() {
                   </Tooltip>
                   <Dialog
                     open={generateDialogOpen}
-                    onOpenChange={setGenerateDialogOpen} >
+                    onOpenChange={setGenerateDialogOpen}
+                  >
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <DialogTrigger asChild>
@@ -1202,7 +1205,9 @@ function HomePageContent() {
             <CodeEditor
               activeFile={activeFile}
               content={content}
-              setContent={handleContentChange} isSaving={false} />
+              setContent={handleContentChange}
+              isSaving={isSaving}
+            />
           </section>
         </main>
         <AppFooter

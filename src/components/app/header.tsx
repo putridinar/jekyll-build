@@ -1,12 +1,21 @@
+
 'use client';
 
-import { Crown, HelpCircle, LogOut, PlusCircle, Settings } from 'lucide-react';
+import { Crown, LogOut, Settings, PlusCircle, HelpCircle } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Icons } from '@/components/icons';
 import { useAuth } from './auth-provider';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,14 +26,6 @@ import {
   DropdownMenuGroup,
 } from '../ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 
 type AppHeaderProps = {
   children?: React.ReactNode;
@@ -77,7 +78,7 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
           </Tooltip>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl">Welcome to Jekyll Buildr!</DialogTitle>
+              <DialogTitle className="font-headline text-2xl">Welcome to Jekyll Flow!</DialogTitle>
               <DialogDescription>
                 Here is a quick guide to get you started.
               </DialogDescription>

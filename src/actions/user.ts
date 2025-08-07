@@ -43,7 +43,7 @@ export async function createSessionCookie(idToken: string) {
         if (!adminAuth) throw new Error('Firebase Admin tidak diinisialisasi');
         const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 hari
         const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-        (await cookies()).set('__session', sessionCookie, {
+        cookies().set('__session', sessionCookie, {
             maxAge: expiresIn,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -59,7 +59,7 @@ export async function createSessionCookie(idToken: string) {
 // Tindakan ini dipanggil untuk keluar dari pengguna
 export async function signOutUser() {
     const sessionCookieName = '__session';
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const sessionCookie = cookieStore.get(sessionCookieName)?.value;
 
     // Selalu hapus cookie terlebih dahulu, terlepas dari apa yang terjadi selanjutnya.
@@ -119,6 +119,7 @@ export async function upgradeToPro(userId: string, subscriptionId: string) {
     }
 }
 
+
 /**
  * Memeriksa apakah pengguna diizinkan untuk menghasilkan komponen AI.
  * Pengguna gratis dibatasi hingga 1 kali per 24 jam.
@@ -173,6 +174,7 @@ export async function checkAndRecordComponentGeneration() {
         return { success: false, error: error.message };
     }
 }
+
 
 /**
  * Checks if a user is allowed to generate AI post content.

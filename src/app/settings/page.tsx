@@ -38,7 +38,7 @@ function SettingsPageContent() {
     const [isFetchingRepos, setIsFetchingRepos] = React.useState(false);
     const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
-
+    
     React.useEffect(() => {
         if (!authLoading && !user) {
             router.push('/login');
@@ -226,160 +226,163 @@ function SettingsPageContent() {
 
     return (
         <TooltipProvider>
-        <div className="flex min-h-screen flex-col">
-            <AppHeader />
-            <main className="flex-1 bg-muted/20 p-4 sm:p-6 md:p-8">
-                <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
-                    {/* Profile Card */}
-                    <Card className="md:col-span-1">
-                        <CardHeader className="flex flex-row items-center gap-4">
-                            <Avatar className="h-14 w-14">
-                                <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                                <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <CardTitle className="text-xl font-headline">{user.displayName}</CardTitle>
-                                <CardDescription>{user.email}</CardDescription>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <h3 className="text-sm font-medium">Account Status</h3>
-                                {user.role === 'proUser' ? (
-                                    <Badge variant="default" className="mt-1 bg-gradient-to-r from-accent to-primary">
-                                        <Crown className="mr-1 h-3 w-3" /> Pro User
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="secondary" className="mt-1">Free User</Badge>
-                                )}
-                            </div>
-                             {user.role === 'proUser' && (
+            <div className="flex min-h-screen flex-col">
+                <AppHeader />
+                <main className="flex-1 bg-muted/20 p-4 sm:p-6 md:p-8">
+                    <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
+                        {/* Profile Card */}
+                        <Card className="md:col-span-1">
+                            <CardHeader className="flex flex-row items-center gap-4">
+                                <Avatar className="h-14 w-14">
+                                    <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                                    <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                                </Avatar>
                                 <div>
-                                    <h3 className="text-sm font-medium">Subscription</h3>
-                                    <Button variant="outline" size="sm" className="mt-1" asChild>
-                                        <a href={PAYPAL_MANAGE_SUBSCRIPTION_URL} target="_blank" rel="noopener noreferrer">
-                                            Manage Subscription <ExternalLink className="ml-2 h-4 w-4" />
-                                        </a>
-                                    </Button>
+                                    <CardTitle className="text-xl font-headline">{user.displayName}</CardTitle>
+                                    <CardDescription>{user.email}</CardDescription>
                                 </div>
-                            )}
-
-                        </CardContent>
-                        <CardFooter className="border-t pt-6">
-                            {user.role === 'freeUser' && (
-                                <Button className="w-full" onClick={() => router.push('/upgrade')}>
-                                    <Crown className="mr-2 h-4 w-4" />
-                                    Upgrade to Pro
-                                </Button>
-                            )}
-                        </CardFooter>
-                    </Card>
-
-                    {/* GitHub Settings Card */}
-                    <Card className="md:col-span-2 flex flex-col">
-                        <CardHeader>
-                            <div className="flex justify-between items-center gap-2">
-                                <div className="flex items-center gap-2">
-                                <SettingsIcon className="h-6 w-6" />
-                                <CardTitle className="font-headline text-2xl">GitHub Settings</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <h3 className="text-sm font-medium">Account Status</h3>
+                                    {user.role === 'proUser' ? (
+                                        <Badge variant="default" className="mt-1 bg-gradient-to-r from-accent to-primary">
+                                            <Crown className="mr-1 h-3 w-3" /> Pro User
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="secondary" className="mt-1">Free User</Badge>
+                                    )}
                                 </div>
-                                {isSaving && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-                            </div>
-                            <CardDescription>Pilih repositori dan cabang untuk mempublikasikan situs Jekyll Anda. Pengaturan akan disimpan secara otomatis setelah Anda memilih cabang.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                            {!settings.installationId ? (
-                                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted p-8 text-center h-full">
-                                    <p className="mb-4 text-muted-foreground">The first step is to connect the GitHub App.</p>
-                                    <Button asChild>
-                                        <a href={GITHUB_APP_URL}>
-                                            <Github className="mr-2 h-4 w-4" />
-                                            Connect with GitHub
-                                        </a>
-                                    </Button>
-                                </div>
-                            ) : (
-                                <form className="space-y-6">
+                                 {user.role === 'proUser' && (
                                     <div>
-                                        <Label htmlFor="repo">Repository</Label>
-                                        <Select
-                                            value={settings.githubRepo || ''}
-                                            onValueChange={handleRepoChange}
-                                            disabled={isFetchingRepos}
-                                        >
-                                            <SelectTrigger id="repo" className="mt-1">
-                                                <SelectValue placeholder="Select a repository..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {isFetchingRepos ? (
-                                                    <div className="flex items-center justify-center p-2">
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    </div>
-                                                ) : (
-                                                    repos.map(repo => <SelectItem key={repo} value={repo}>{repo}</SelectItem>)
-                                                )}
-                                            </SelectContent>
-                                        </Select>
+                                        <h3 className="text-sm font-medium">Subscription</h3>
+                                        <Button variant="outline" size="sm" className="mt-1" asChild>
+                                            <a href={PAYPAL_MANAGE_SUBSCRIPTION_URL} target="_blank" rel="noopener noreferrer">
+                                                Manage Subscription <ExternalLink className="ml-2 h-4 w-4" />
+                                            </a>
+                                        </Button>
                                     </div>
+                                )}
 
-                                    <div>
-                                        <Label htmlFor="branch">Branch</Label>
-                                        <Select
-                                            value={settings.githubBranch || ''}
-                                            onValueChange={handleBranchChange}
-                                            disabled={!settings.githubRepo || isFetchingBranches}
-                                        >
-                                            <SelectTrigger id="branch" className="mt-1">
-                                                <SelectValue placeholder="Select a branch..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {isFetchingBranches ? (
-                                                    <div className="flex items-center justify-center p-2">
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    </div>
-                                                ) : (
-                                                    branches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </form>
-                            )}
-                        </CardContent>
-                        {settings.installationId && (
-                             <CardFooter className="border-t flex justify-between pt-6 mt-auto">
-                                        <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
-                                            Change Permissions
-                                        </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="sm" className="w-fit" disabled={isDisconnecting}>
-                                            <Trash2 className="mr-2 h-4 w-4" /> 
-                                            {isDisconnecting ? 'Disconnecting...' : 'Disconnect GitHub'}
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This will remove your repository connection. You will be redirected to GitHub to uninstall the app to fully complete the process.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDisconnect} className="bg-destructive hover:bg-destructive/90">
-                                                Yes, Disconnect
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                            </CardContent>
+                            <CardFooter className="border-t pt-6">
+                                {user.role === 'freeUser' && (
+                                    <Button className="w-full" onClick={() => router.push('/upgrade')}>
+                                        <Crown className="mr-2 h-4 w-4" />
+                                        Upgrade to Pro
+                                    </Button>
+                                )}
                             </CardFooter>
-                        )}
-                    </Card>
-                </div>
-            </main>
-            <AppFooter isPublishing={false} isCreatingPr={false} />
-        </div>
+                        </Card>
+
+                        {/* GitHub Settings Card */}
+                        <Card className="md:col-span-2 flex flex-col">
+                            <CardHeader>
+                                <div className="flex justify-between items-center gap-2">
+                                    <div className="flex items-center gap-2">
+                                    <SettingsIcon className="h-6 w-6" />
+                                    <CardTitle className="font-headline text-2xl">GitHub Settings</CardTitle>
+                                    </div>
+                                    {isSaving && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+                                </div>
+                                <CardDescription>Pilih repositori dan cabang untuk mempublikasikan situs Jekyll Anda. Pengaturan akan disimpan secara otomatis setelah Anda memilih cabang.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                {!settings.installationId ? (
+                                     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted p-8 text-center h-full">
+                                        <p className="mb-4 text-muted-foreground">The first step is to connect the GitHub App.</p>
+                                        <Button asChild>
+                                            <a href={GITHUB_APP_URL}>
+                                                <Github className="mr-2 h-4 w-4" />
+                                                Connect with GitHub
+                                            </a>
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <form className="space-y-6">
+                                        <div>
+                                            <Label htmlFor="repo">Repository</Label>
+                                            <Select
+                                                value={settings.githubRepo || ''}
+                                                onValueChange={handleRepoChange}
+                                                disabled={isFetchingRepos}
+                                            >
+                                                <SelectTrigger id="repo" className="mt-1">
+                                                    <SelectValue placeholder="Select a repository..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {isFetchingRepos ? (
+                                                        <div className="flex items-center justify-center p-2">
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        </div>
+                                                    ) : (
+                                                        repos.map(repo => <SelectItem key={repo} value={repo}>{repo}</SelectItem>)
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div>
+                                            <Label htmlFor="branch">Branch</Label>
+                                            <Select
+                                                value={settings.githubBranch || ''}
+                                                onValueChange={handleBranchChange}
+                                                disabled={!settings.githubRepo || isFetchingBranches}
+                                            >
+                                                <SelectTrigger id="branch" className="mt-1">
+                                                    <SelectValue placeholder="Select a branch..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {isFetchingBranches ? (
+                                                        <div className="flex items-center justify-center p-2">
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        </div>
+                                                    ) : (
+                                                        branches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        
+                                        <div className="flex justify-start items-center pt-2">
+                                            <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
+                                                Sync / Change Permissions
+                                            </Button>
+                                        </div>
+                                    </form>
+                                )}
+                            </CardContent>
+                            {settings.installationId && (
+                                 <CardFooter className="border-t pt-6 mt-auto">
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" className="w-full" disabled={isDisconnecting}>
+                                                <Trash2 className="mr-2 h-4 w-4" /> 
+                                                {isDisconnecting ? 'Disconnecting...' : 'Disconnect GitHub'}
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will remove your repository connection. You will be redirected to GitHub to uninstall the app to fully complete the process.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDisconnect} className="bg-destructive hover:bg-destructive/90">
+                                                    Yes, Disconnect
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </CardFooter>
+                            )}
+                        </Card>
+                    </div>
+                </main>
+                <AppFooter isPublishing={false} isCreatingPr={false} />
+            </div>
         </TooltipProvider>
     );
 }
