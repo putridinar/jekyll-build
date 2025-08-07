@@ -5,9 +5,10 @@ import * as React from 'react'
 import { Crown, Files, LogOut, Settings, PlusCircle } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useAuth } from './auth-provider'
+import { useAuth } from '@/hooks/use-auth'
 import type { User } from 'firebase/auth'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import { UpgradeModal } from '../upgrade-modal'
 
 type CustomUser = User & { role?: string };
 
@@ -20,6 +21,7 @@ export function IconSidebar({ user, className }: IconSidebarProps) {
   const router = useRouter();
   const { logout } = useAuth();
   const activePath = usePathname();
+  const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
 
   const handleLogout = React.useCallback(async () => {
     await logout();
@@ -32,29 +34,33 @@ export function IconSidebar({ user, className }: IconSidebarProps) {
       icon: Files,
       label: 'Editor',
       isActive: activePath === '/',
+      action: () => router.push('/'),
     },
     {
       href: '/settings',
       icon: Settings,
       label: 'Settings',
       isActive: activePath.startsWith('/settings'),
+      action: () => router.push('/settings'),
     },
     ...(user?.role === 'freeUser' ? [{
-      href: '/upgrade',
+      href: '#',
       icon: Crown,
       label: 'Go Pro',
-      isActive: activePath.startsWith('/upgrade'),
+      isActive: false,
+      action: () => setUpgradeModalOpen(true),
     }] : []),
-  ], [activePath, user?.role]);
+  ], [activePath, user?.role, router]);
 
   return (
+    <>
     <nav className={cn("flex flex-col items-center gap-4 border-r bg-background/80 px-2 py-4", className)}>
       
       {navItems.map((item) => (
-         <Tooltip key={item.href}>
+         <Tooltip key={item.label}>
           <TooltipTrigger asChild>
             <button
-              onClick={() => router.push(item.href)}
+              onClick={item.action}
               className={cn(
                 'flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-200',
                 item.isActive
@@ -94,5 +100,7 @@ export function IconSidebar({ user, className }: IconSidebarProps) {
          </Tooltip>
       </div>
     </nav>
+    <UpgradeModal isOpen={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
+    </>
   );
 }

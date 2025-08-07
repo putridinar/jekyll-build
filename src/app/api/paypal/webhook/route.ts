@@ -5,7 +5,7 @@ const isSandbox = process.env.PAYPAL_SANDBOX_ENABLED === 'true';
 const PAYPAL_API_URL = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
 const PAYPAL_CLIENT_ID = isSandbox ? process.env.PAYPAL_SANDBOX_CLIENT_ID : process.env.PAYPAL_LIVE_CLIENT_ID;
 const PAYPAL_CLIENT_SECRET = isSandbox ? process.env.PAYPAL_SANDBOX_CLIENT_SECRET : process.env.PAYPAL_LIVE_CLIENT_SECRET;
-const PAYPAL_WEBHOOK_ID = isSandbox ? process.env.PAYPAL_SANDBOX_WEBHOOK_ID : process.env.PAYPAL_LIVE_WEBHOOK_ID;
+const PAYPAL_WEBHOOK_ID = (isSandbox ? process.env.PAYPAL_SANDBOX_WEBHOOK_ID : process.env.PAYPAL_LIVE_WEBHOOK_ID) || '';
 
 // Fungsi untuk mendapatkan access token dari PayPal (diperlukan untuk verifikasi webhook)
 async function getPayPalAccessToken() {
@@ -33,6 +33,9 @@ async function verifyPayPalWebhook(accessToken: string, headers: Headers, rawBod
     console.error('PAYPAL_WEBHOOK_ID is not set in environment variables.');
     return false;
   }
+  
+  const event = JSON.parse(rawBody);
+
   const requestBody = {
     transmission_id: headers.get('paypal-transmission-id'),
     transmission_time: headers.get('paypal-transmission-time'),
@@ -40,7 +43,7 @@ async function verifyPayPalWebhook(accessToken: string, headers: Headers, rawBod
     auth_algo: headers.get('paypal-auth-algo'),
     transmission_sig: headers.get('paypal-transmission-sig'),
     webhook_id: PAYPAL_WEBHOOK_ID,
-    webhook_event: rawBody // rawBody adalah string, tetapi API verifikasi PayPal mengharapkan event sebagai objek JSON.
+    webhook_event: event
   };
 
   const response = await fetch(`${PAYPAL_API_URL}/v1/notifications/verify-webhook-signature`, {
@@ -74,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     const event = JSON.parse(rawBody);
-
+    
     // Tangani aktivasi langganan
     if (event.event_type === 'BILLING.SUBSCRIPTION.ACTIVATED') {
       const subscription = event.resource;

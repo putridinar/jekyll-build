@@ -59,11 +59,11 @@ export function CodeEditor({
         <Card className="h-full w-full rounded-lg border-0 shadow-none">
           <CardContent className="h-full overflow-y-auto p-0">
             {isSaving && (
-              <div className="absolute top-2 right-2 z-10 text-muted-foreground">
+              <div className="absolute top-2 right-4 z-10 text-muted-foreground">
                 <div className='flex items-center gap-1'>
                   <Save className="h-5 w-5 animate-pulse" />
-                  <span className='text-xs text-red-600'>(Auto-saving...)</span>
-                  </div>
+                  <span className="text-xs text-orange-600">AutoSave...</span>
+                </div>
               </div>
             )}
              <Editor

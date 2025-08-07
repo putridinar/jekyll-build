@@ -4,7 +4,7 @@
 import { Crown, LogOut, Settings, PlusCircle, HelpCircle } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Icons } from '@/components/icons';
-import { useAuth } from './auth-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -26,6 +26,8 @@ import {
   DropdownMenuGroup,
 } from '../ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { UpgradeModal } from '../upgrade-modal';
+import * as React from 'react';
 
 type AppHeaderProps = {
   children?: React.ReactNode;
@@ -35,6 +37,8 @@ type AppHeaderProps = {
 export function AppHeader({ children, onNewPost }: AppHeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
+
 
   const handleLogout = async () => {
     await logout();
@@ -146,7 +150,7 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
                   <span>Settings</span>
                 </DropdownMenuItem>
                 {user.role === 'freeUser' && (
-                   <DropdownMenuItem onClick={() => router.push('/upgrade')}>
+                   <DropdownMenuItem onClick={() => setUpgradeModalOpen(true)}>
                     <Crown className="mr-2 h-4 w-4" />
                     <span>Upgrade to Pro</span>
                   </DropdownMenuItem>
@@ -161,6 +165,7 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
           </DropdownMenu>
         )}
       </div>
+      <UpgradeModal isOpen={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
     </header>
   );
 }

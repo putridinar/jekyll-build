@@ -24,7 +24,7 @@ import {PanelLeft, Sparkles, Plus, FolderPlus, Save} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {AppFooter} from '@/components/app/footer';
 import {generateJekyllComponent} from '@/ai/flows/jekyll-generator-flow';
-import {useAuth} from '@/components/app/auth-provider';
+import {useAuth} from '@/hooks/use-auth';
 import {generateImage} from '@/actions/ai';
 import {IconSidebar} from '@/components/app/icon-sidebar';
 import {
@@ -122,19 +122,13 @@ const initialFileStructure: FileNode[] = [
       },
     ],
   },
-  {
-    name: 'about',
-    path: 'about',
-    type: 'folder',
-    children: [{name: 'index.html', path: 'about/index.html', type: 'file'}],
-  },
   {name: '_config.yml', path: '_config.yml', type: 'file'},
   {name: 'index.html', path: 'index.html', type: 'file'},
   {name: 'Gemfile', path: 'Gemfile', type: 'file'},
 ];
 
 const initialFileContents: {[key: string]: string} = {
-  '_config.yml': `title: My Jekyll Site
+  '_config.yml': `title: My Awesome Jekyll Site
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
 baseurl: "" # subpath situs Anda, mis. /blog
@@ -219,15 +213,15 @@ permalink: /
 </div>
 `,
   '_layouts/default.html': `<!DOCTYPE html>
-<html lang="{{ page.lang | default: site.lang | default: 'id-ID' }}" class="h-full">
+<html lang="{{ page.lang | default: site.lang | default: "id-ID" }}" class="h-full">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title | escape }} | {{ site.title | escape }}</title>
     <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | normalize_whitespace | truncate: 160 | escape }}">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
-    <link rel="canonical" href="{{ page.url | replace:'index.html', '' | absolute_url }}">
+    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
+    <link rel="canonical" href="{{ page.url | replace:'index.html','' | absolute_url }}">
   </head>
   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
     {% include header.html %}
@@ -251,9 +245,7 @@ layout: default
           {{ page.title }}
         </h2>
 
-      {% if page.image %}
         <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 rounded-md object-cover">
-      {% endif %}
 
   <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
     {{ content }}
@@ -278,7 +270,7 @@ layout: default
 `,
   '_includes/header.html': `<header class="bg-white dark:bg-gray-800 shadow-md py-4">
   <div class="container mx-auto px-4 flex justify-between items-center">
-    <a class="text-3xl font-bold text-gray-900 dark:text-white" href="{{ '/' | relative_url }}">{{ site.title | escape }}</a>
+    <a class="text-2xl font-bold text-gray-900 dark:text-white" href="{{ '/' | relative_url }}">{{ site.title | escape }}</a>
     
     <nav class="site-nav">
       <div class="hidden md:block">
@@ -309,7 +301,7 @@ To add new posts, simply add a file in the \`_posts\` directory that follows the
   '_data/navigation.yml': `- title: Home
   url: /
 - title: About
-  url: /about
+  url: /about/
 `,
   'assets/css/style.css': `/* Add your Tailwind CSS directives here, or other custom CSS */
 `,
@@ -320,11 +312,6 @@ To add new posts, simply add a file in the \`_posts\` directory that follows the
 gem "jekyll"
 gem "jekyll-feed"
 gem "jekyll-sitemap"
-`,
-  'about/index.html': `---
-title: About Us
-permalink: /about
----
 `,
 };
 
@@ -370,7 +357,6 @@ function HomePageContent() {
       if (user) {
         const result = await getTemplateState();
         if (result.success && result.data) {
-          // Add more robust checking to ensure all expected data is present
           const { fileStructure, activeFile, fileContents, expandedFolders } = result.data;
           if (fileStructure && activeFile && fileContents && expandedFolders) {
             setFileStructure(fileStructure);
@@ -420,10 +406,8 @@ function HomePageContent() {
     debouncedSave(stateToSave);
   }, [fileStructure, activeFile, fileContents, expandedFolders, debouncedSave, loading, user]);
 
-  // Unified content state for the editor
   const [content, setContent] = React.useState(
-    // Safer initialization: check if fileContents exists before accessing it.
-    fileContents ? fileContents[activeFile] ?? '' : ''
+    fileContents?.[activeFile] ?? ''
   );
 
   const handleActiveFileChange = (path: string) => {

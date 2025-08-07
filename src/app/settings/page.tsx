@@ -1,8 +1,9 @@
+
 // src/app/settings/page.tsx
 'use client';
 
 import * as React from 'react';
-import { useAuth } from '@/components/app/auth-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,12 +18,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { UpgradeModal } from '@/components/upgrade-modal';
 
 
 const GITHUB_APP_NAME = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
-const GITHUB_APP_URL = `https://github.com/apps/${GITHUB_APP_NAME}/installations/new`;
 const PAYPAL_MANAGE_SUBSCRIPTION_URL = process.env.NEXT_PUBLIC_PAYPAL_MANAGE_SUBSCRIPTION_URL || 'https://www.paypal.com/myaccount/autopay/';
 
+const GITHUB_APP_URL = "";
 
 function SettingsPageContent() {
     const { user, loading: authLoading } = useAuth();
@@ -38,6 +40,7 @@ function SettingsPageContent() {
     const [isFetchingRepos, setIsFetchingRepos] = React.useState(false);
     const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
+    const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
     
     React.useEffect(() => {
         if (!authLoading && !user) {
@@ -267,7 +270,7 @@ function SettingsPageContent() {
                             </CardContent>
                             <CardFooter className="border-t pt-6">
                                 {user.role === 'freeUser' && (
-                                    <Button className="w-full" onClick={() => router.push('/upgrade')}>
+                                    <Button className="w-full" onClick={() => setUpgradeModalOpen(true)}>
                                         <Crown className="mr-2 h-4 w-4" />
                                         Upgrade to Pro
                                     </Button>
@@ -382,6 +385,7 @@ function SettingsPageContent() {
                     </div>
                 </main>
                 <AppFooter isPublishing={false} isCreatingPr={false} />
+                <UpgradeModal isOpen={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
             </div>
         </TooltipProvider>
     );

@@ -43,7 +43,7 @@ export async function createSessionCookie(idToken: string) {
         if (!adminAuth) throw new Error('Firebase Admin tidak diinisialisasi');
         const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 hari
         const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-        cookies().set('__session', sessionCookie, {
+        (await cookies()).set('__session', sessionCookie, {
             maxAge: expiresIn,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -59,7 +59,7 @@ export async function createSessionCookie(idToken: string) {
 // Tindakan ini dipanggil untuk keluar dari pengguna
 export async function signOutUser() {
     const sessionCookieName = '__session';
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(sessionCookieName)?.value;
 
     // Selalu hapus cookie terlebih dahulu, terlepas dari apa yang terjadi selanjutnya.
@@ -200,12 +200,12 @@ export async function checkAndRecordPostGeneration() {
         }
 
         // Logic for free users
-        const lastGenTimestamp = userData.lastPostGenerationAt;
+        const lastPostGenerationAt = userData.lastPostGenerationAt;
         const now = Date.now();
 
-        if (lastGenTimestamp) {
+        if (lastPostGenerationAt) {
             const twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
-            const timeSinceLastGen = now - lastGenTimestamp.toMillis();
+            const timeSinceLastGen = now - lastPostGenerationAt.toMillis();
             
             if (timeSinceLastGen < twentyFourHoursInMillis) {
                 const timeLeft = twentyFourHoursInMillis - timeSinceLastGen;

@@ -29,7 +29,7 @@ import { Loader2, Sparkles, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent } from '@/actions/content';
 import Image from 'next/image';
-import { useAuth } from './auth-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { generatePostContent } from '@/ai/flows/post-generator-flow';
 import { checkAndRecordPostGeneration } from '@/actions/user';
@@ -293,7 +293,7 @@ export function PostEditor({
                     <FormControl>
                       <Textarea
                         placeholder="Write your post content here. Markdown is supported."
-                        className="min-h-[250px] md:min-h-[400px]"
+                        className="min-h-[200px] md:min-h-[350px]"
                         {...field}
                       />
                     </FormControl>
@@ -304,8 +304,8 @@ export function PostEditor({
             </form>
           </Form>
         </div>
-        <SheetFooter className="px-4 py-4 flex justify-between items-center bg-background border-t">
-          <Button variant="outline" onClick={handleGenerate} disabled={isSubmitting || isGenerating}>
+        <SheetFooter className="px-2 py-3 flex justify-between items-center bg-background border-t">
+          <Button size="sm" variant="outline" onClick={handleGenerate} disabled={isSubmitting || isGenerating}>
             {isGenerating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -313,7 +313,7 @@ export function PostEditor({
             )}
             Generate with AI
           </Button>
-          <Button type="submit" form="post-form" disabled={isSubmitting || isGenerating}>
+          <Button type="submit" size="sm" form="post-form" disabled={isSubmitting || isGenerating}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Publish Post
           </Button>
