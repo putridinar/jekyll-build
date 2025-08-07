@@ -127,7 +127,7 @@ const initialFileStructure: FileNode[] = [
 ];
 
 const initialFileContents: {[key: string]: string} = {
-  '_config.yml': `title: My Awesome Jekyll Site
+  '_config.yml': `title: My Jekyll Site
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
 baseurl: "" # subpath situs Anda, mis. /blog
@@ -218,9 +218,9 @@ permalink: /
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title | escape }} | {{ site.title | escape }}</title>
     <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | normalize_whitespace | truncate: 160 | escape }}">
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
-    <link rel="canonical" href="{{ page.url | replace:'index.html','' | absolute_url }}">
+    <script src='https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4'></script>
+    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+    <link rel="canonical" href="{{ page.url | replace:'index.html', '' | absolute_url }}">
   </head>
   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
     {% include header.html %}
@@ -240,11 +240,13 @@ layout: default
 ---
 <article class="post h-entry px-4 py-8 max-w-3xl mx-auto" itemscope itemtype="http://schema.org/BlogPosting">
 
-        <h2 class="mb-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
+    <h2 class="mb-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
           {{ page.title }}
-        </h2>
+    </h2>
 
-        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 rounded-md object-cover">
+      {% if page.image %}
+        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 object-cover">
+      {% endif %}
 
   <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
     {{ content }}
@@ -283,7 +285,7 @@ layout: default
 `,
   '_includes/footer.html': `<footer class="w-full bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-700">
     <div class="container mx-auto py-5 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-      <p>&copy; {% capture current_year %}{{ 'now' | date: '%Y' }}{% endcapture %}{{ current_year }} {{ site.title }} <br /> Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
+      <p>&copy; {% capture current_year %}{{ 'now' | date: '%Y' }}{% endcapture %}{{ current_year }} {{ site.title }} <br /> Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank"> Jekyll-Buildr</a> by Daffa</p>
     </div>
   </footer>
 `,
@@ -1150,8 +1152,7 @@ function HomePageContent() {
                   </Tooltip>
                   <Dialog
                     open={generateDialogOpen}
-                    onOpenChange={setGenerateDialogOpen}
-                  >
+                    onOpenChange={setGenerateDialogOpen} >
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <DialogTrigger asChild>
@@ -1201,7 +1202,7 @@ function HomePageContent() {
             <CodeEditor
               activeFile={activeFile}
               content={content}
-              setContent={handleContentChange} isSaving={false}            />
+              setContent={handleContentChange} isSaving={false} />
           </section>
         </main>
         <AppFooter

@@ -21,11 +21,11 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#000000" />
         <link rel="icon" href="/favicon.ico" />
-        <meta property="twitter:image" content="/og-image.png"/>
+        <meta property="twitter:image" content="./og-image.png"/>
         <meta property="twitter:card" content="summary_large_image"></meta>
         <meta property="twitter:title" content="Jekyll Buildr"></meta>
         <meta property="twitter:description" content="Create and publish Jekyll templates with ease."></meta>
-        <meta property="og:image" content="/og-image.png"></meta>
+        <meta property="og:image" content="./og-image.png"></meta>
         <meta property="og:site_name" content="Jekyll Buildr"></meta>
         <meta property="og:title" content="Jekyll Buildr"></meta>
         <meta property="og:description" content="Create and publish Jekyll templates with ease."></meta>
