@@ -17,6 +17,24 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth" suppressHydrationWarning>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+        <meta name="theme-color" content="#000000"></meta>        
+        <meta name="description" content="Jekyll Buildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
+        <meta name="keywords" content="AI, artificial intelligence, image generation, video generation, deep learning, neural networks, machine learning, Jekyll, Buildr"></meta>
+        
+        <meta property="twitter:card" content="summary_large_image"></meta>
+        <meta property="twitter:site" content="@jekyllBuildr"></meta>
+        <meta property="twitter:creator" content="@jekyllBuildr"></meta>
+        <meta property="twitter:title" content="jekyllBuildr"></meta>
+        <meta property="twitter:description" content="jekyllBuildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
+        <meta property="twitter:image" content="https://jekyll-buildr.vercel.app/og-image.jpg"></meta>
+
+        <meta property="og:title" content="Jekyll Buildr"></meta>
+        <meta property="og:description" content="Jekyll Buildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
+        <meta property="og:image" content="https://jekyll-buildr.vercel.app/og-image.jpg"></meta>
+        <meta property="og:url" content="https://jekyll-buildr.vercel.app"></meta>
+        <meta property="og:type" content="website"></meta>
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
