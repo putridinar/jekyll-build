@@ -377,21 +377,16 @@ function HomePageContent() {
   const [generateDialogOpen, setGenerateDialogOpen] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
 
   const debouncedSave = useDebouncedCallback(async (stateToSave) => {
+    setIsSaving(true);
     try {
       await saveTemplateState(stateToSave);
-      toast({
-        title: 'Auto-saved!',
-        description: 'Your changes have been saved automatically.',
-      });
     } catch (error) {
       console.error('Auto-save error:', error);
-      toast({
-        title: 'Auto-save Failed',
-        description: 'Could not save your changes.',
-        variant: 'destructive',
-      });
+    } finally {
+      setIsSaving(false);
     }
   }, 2000);
 
@@ -1176,8 +1171,7 @@ function HomePageContent() {
             <CodeEditor
               activeFile={activeFile}
               content={content}
-              setContent={handleContentChange}
-            />
+              setContent={handleContentChange} isSaving={false}            />
           </section>
         </main>
         <AppFooter

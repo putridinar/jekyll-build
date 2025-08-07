@@ -10,12 +10,15 @@ import 'prismjs/components/prism-yaml';
 import 'prismjs/components/prism-markdown';
 import 'prismjs/components/prism-ruby';
 import { Card, CardContent } from '../ui/card';
+import { Save } from 'lucide-react';
+import { cn } from '@/lib/utils';
 // Tambahkan bahasa lain sesuai kebutuhan
 
 type CodeEditorProps = {
   activeFile: string;
   content: string;
   setContent: (content: string) => void;
+  isSaving: boolean;
 };
 
 function getLanguage(filename: string) {
@@ -46,14 +49,18 @@ export function CodeEditor({
   activeFile,
   content,
   setContent,
+  isSaving,
 }: CodeEditorProps) {
 
   const language = getLanguage(activeFile);
 
   return (
-      <div className="flex-1 overflow-hidden p-1">
+      <div className="relative flex-1 overflow-hidden p-1">
         <Card className="h-full w-full rounded-lg border-0 shadow-none">
           <CardContent className="h-full overflow-y-auto p-0">
+             <div className="absolute top-2 right-2 z-10 text-muted-foreground">
+                <Save className={cn('h-5 w-5', isSaving && 'animate-pulse')} />
+             </div>
              <Editor
               value={content}
               onValueChange={setContent}

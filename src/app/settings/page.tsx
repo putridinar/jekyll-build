@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { useAlert } from '@/contexts/AlertContext';
+import { useToast } from '@/hooks/use-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 
@@ -26,7 +26,7 @@ const PAYPAL_MANAGE_SUBSCRIPTION_URL = process.env.NEXT_PUBLIC_PAYPAL_MANAGE_SUB
 
 function SettingsPageContent() {
     const { user, loading: authLoading } = useAuth();
-    const { showAlert } = useAlert();
+    const { toast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -49,10 +49,14 @@ function SettingsPageContent() {
         const status = searchParams.get('status');
         const message = searchParams.get('message');
         if (status && message) {
-            showAlert(message, status as 'success' | 'error' | 'info');
+            toast({
+                title: status.charAt(0).toUpperCase() + status.slice(1),
+                description: message,
+                variant: status === 'error' ? 'destructive' : 'default',
+            });
             router.replace('/settings');
         }
-    }, [searchParams, showAlert, router]);
+    }, [searchParams, toast, router]);
 
     const fetchRepos = async () => {
         setIsFetchingRepos(true);
@@ -62,7 +66,11 @@ function SettingsPageContent() {
             if (!response.ok) throw new Error(data.error || 'Failed to fetch repositories.');
             setRepos(data.repositories || []);
         } catch (error: any) {
-            showAlert(error.message, 'error');
+            toast({
+                title: 'Error Fetching Repos',
+                description: error.message,
+                variant: 'destructive'
+            });
         } finally {
             setIsFetchingRepos(false);
         }
@@ -77,7 +85,11 @@ function SettingsPageContent() {
             if (!response.ok) throw new Error(data.error || 'Failed to fetch branches');
             setBranches(data.branches || []);
         } catch (error: any) {
-            showAlert(error.message, 'error');
+            toast({
+                title: 'Error Fetching Branches',
+                description: error.message,
+                variant: 'destructive'
+            });
         } finally {
             setIsFetchingBranches(false);
         }
@@ -104,11 +116,15 @@ function SettingsPageContent() {
                 }
             }
         } catch (error: any) {
-            showAlert(`Failed to load initial settings: ${error.message}`, 'error');
+            toast({
+                title: 'Error Loading Settings',
+                description: `Failed to load initial settings: ${error.message}`,
+                variant: 'destructive'
+            });
         } finally {
             setLoading(false);
         }
-    }, [user, showAlert]);
+    }, [user, toast]);
 
 
     React.useEffect(() => {
@@ -137,12 +153,19 @@ function SettingsPageContent() {
                     githubBranch: branch
                 });
                 if (result.success) {
-                    showAlert('Pengaturan berhasil disimpan!', 'success');
+                    toast({
+                        title: 'Settings Saved!',
+                        description: 'Pengaturan berhasil disimpan!',
+                    });
                 } else {
                     throw new Error(result.error || 'Gagal menyimpan pengaturan.');
                 }
             } catch (error: any) {
-                showAlert(error.message, 'error');
+                toast({
+                    title: 'Save Failed',
+                    description: error.message,
+                    variant: 'destructive'
+                });
             } finally {
                 setIsSaving(false);
             }
@@ -155,7 +178,11 @@ function SettingsPageContent() {
         if (appName) {
             window.location.href = `https://github.com/apps/${appName}/installations/new`;
         } else {
-            showAlert("Konfigurasi nama aplikasi GitHub tidak ditemukan.", "error");
+            toast({
+                title: 'Configuration Error',
+                description: "Konfigurasi nama aplikasi GitHub tidak ditemukan.",
+                variant: 'destructive'
+            });
         }
     };
     
@@ -165,7 +192,10 @@ function SettingsPageContent() {
             const currentInstallationId = settings.installationId;
             const result = await disconnectGithub();
             if (result.success) {
-                showAlert('GitHub Terputus. Mengarahkan Anda untuk menghapus instalasi aplikasi...', 'info');
+                toast({
+                    title: 'GitHub Disconnected',
+                    description: 'Mengarahkan Anda untuk menghapus instalasi aplikasi...',
+                });
                 setSettings({});
                 setRepos([]);
                 setBranches([]);
@@ -176,7 +206,11 @@ function SettingsPageContent() {
                 throw new Error(result.error || 'Gagal memutuskan sambungan.');
             }
         } catch (error: any) {
-            showAlert(error.message, 'error');
+            toast({
+                title: 'Disconnect Failed',
+                description: error.message,
+                variant: 'destructive'
+            });
         } finally {
             setIsDisconnecting(false);
         }
