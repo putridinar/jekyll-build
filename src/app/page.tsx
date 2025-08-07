@@ -216,7 +216,7 @@ permalink: /
     <title>{{ page.title | escape }} | {{ site.title | escape }}</title>
     <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | normalize_whitespace | truncate: 160 | escape }}">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="{{ site.baseurl }}{{ "/assets/css/style.css" | relative_url }}">
+    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
     <link rel="canonical" href="{{ page.url | replace:'index.html','' | absolute_url }}">
   </head>
   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
@@ -237,6 +237,12 @@ layout: default
 ---
 <article class="post h-entry px-4 py-8 max-w-3xl mx-auto" itemscope itemtype="http://schema.org/BlogPosting">
 
+        <h2 class="mb-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
+          {{ page.title }}
+        </h2>
+
+        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 rounded-md object-cover">
+
   <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
     {{ content }}
   </div>
@@ -250,22 +256,22 @@ layout: default
       <br>
       Kategori:
       {%- for tag in page.tags -%}
-        <a href="{{ site.baseurl }}/tags/{{ tag | slugify }}/" class="text-purple-600 dark:text-purple-400 hover:underline">#{{ tag }}</a>{%- unless forloop.last -%},{%- endunless -%}
+        <a href="/tags/{{ tag | slugify }}/" class="text-purple-600 dark:text-purple-400 hover:underline">#{{ tag }}</a>{%- unless forloop.last -%},{%- endunless -%}
       {%- endfor -%}
     {%- endif -%}
   </div>
 
-  <a class="u-url" href="{{ site.baseurl }}{{ page.url | relative_url }}" hidden></a>
+  <a class="u-url" href="{{ page.url | relative_url }}" hidden></a>
 </article>
 `,
   '_includes/header.html': `<header class="bg-white dark:bg-gray-800 shadow-md py-4">
   <div class="container mx-auto px-4 flex justify-between items-center">
-    <a class="text-2xl font-bold text-gray-900 dark:text-white" rel="author" href="{{ site.baseurl }}{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+    <a class="text-2xl font-bold text-gray-900 dark:text-white" href="{{ '/' | relative_url }}">{{ site.title | escape }}</a>
     
     <nav class="site-nav">
       <div class="hidden md:block">
         {%- for item in site.data.navigation -%}
-          <a class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md font-medium" href="{{ site.baseurl }}{{ item.url | relative_url }}">{{ item.title }}</a>
+          <a class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md font-medium" href="{{ item.url | relative_url }}">{{ item.title }}</a>
         {%- endfor -%}
       </div>
       </nav>
@@ -274,14 +280,14 @@ layout: default
 `,
   '_includes/footer.html': `<footer class="w-full bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-700">
     <div class="container mx-auto py-5 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-      <p>&copy; {% capture current_year %}{{ 'now' | date: "%Y" }}{% endcapture %}{{ current_year }} {{ site.title }} &bull; Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
+      <p>&copy; {% capture current_year %}{{ 'now' | date: '%Y' }}{% endcapture %}{{ current_year }} {{ site.title }} <br /> Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
     </div>
   </footer>
 `,
   '_posts/2024-01-01-welcome-to-jekyll.md': `---
-title:  "Welcome to Jekyll!"
-image: https://placehold.co/600x400?text=Jekyll\nWorld
-date:   2024-01-01 00:00:00 -0000
+title: "Welcome to Jekyll!"
+image: "https://placehold.co/600x400?text=Jekyll-World"
+date: 2024-01-01 00:00:00 -0000
 categories: jekyll update
 ---
 You’ll find this post in your \`_posts\` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run \`bundle exec jekyll serve\`, which launches a web server and auto-regenerates your site when a file is updated.
