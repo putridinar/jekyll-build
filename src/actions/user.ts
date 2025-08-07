@@ -43,7 +43,7 @@ export async function createSessionCookie(idToken: string) {
         if (!adminAuth) throw new Error('Firebase Admin tidak diinisialisasi');
         const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 hari
         const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-        cookies().set('__session', sessionCookie, {
+        (await cookies()).set('__session', sessionCookie, {
             maxAge: expiresIn,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -59,7 +59,7 @@ export async function createSessionCookie(idToken: string) {
 // Tindakan ini dipanggil untuk keluar dari pengguna
 export async function signOutUser() {
     const sessionCookieName = '__session';
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(sessionCookieName)?.value;
 
     // Selalu hapus cookie terlebih dahulu, terlepas dari apa yang terjadi selanjutnya.
@@ -116,5 +116,60 @@ export async function upgradeToPro(userId: string, subscriptionId: string) {
     } catch (error: any) {
         console.error(`Error upgrading user ${userId} to Pro:`, error);
         return { success: false, error: error.message || "Failed to upgrade user role in database." };
+    }
+}
+
+/**
+ * Memeriksa apakah pengguna diizinkan untuk menghasilkan komponen AI.
+ * Pengguna gratis dibatasi hingga 1 kali per 24 jam.
+ * Jika diizinkan, itu juga mencatat stempel waktu generasi.
+ */
+export async function checkAndRecordComponentGeneration() {
+    try {
+        const userId = await getUserId();
+        if (!adminDb) throw new Error('Firestore not initialized');
+
+        const userRef = adminDb.collection('users').doc(userId);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+
+        if (!userData) {
+            throw new Error("User data not found.");
+        }
+
+        // Pengguna pro dapat menghasilkan tanpa batas.
+        if (userData.role === 'proUser') {
+            return { success: true };
+        }
+
+        // Logika untuk pengguna gratis
+        const lastGenTimestamp = userData.lastComponentGenerationAt;
+        const now = Date.now();
+
+        if (lastGenTimestamp) {
+            const twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
+            const timeSinceLastGen = now - lastGenTimestamp.toMillis();
+            
+            if (timeSinceLastGen < twentyFourHoursInMillis) {
+                const timeLeft = twentyFourHoursInMillis - timeSinceLastGen;
+                const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                return { 
+                    success: false, 
+                    error: `You have reached your daily limit. Please try again in ${hoursLeft}h ${minutesLeft}m.` 
+                };
+            }
+        }
+
+        // Jika pengguna diizinkan, catat waktu generasi baru.
+        await userRef.update({
+            lastComponentGenerationAt: FieldValue.serverTimestamp(),
+        });
+        
+        return { success: true };
+
+    } catch (error: any) {
+        console.error("Error in checkAndRecordComponentGeneration:", error);
+        return { success: false, error: error.message };
     }
 }

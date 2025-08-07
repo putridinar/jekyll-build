@@ -82,14 +82,14 @@ export default function UpgradePage() {
         <div className="flex min-h-screen flex-col">
             <AppHeader />
             <main className="flex-1 px-3 bg-muted/20">
-                <div className="container mx-auto max-w-4xl py-12">
-                    <div className="text-center mb-12">
-                        <p className="mt-4 text-lg text-muted-foreground">Unlock powerful features and take your creativity to the next level.</p>
+                <div className="container mx-auto max-w-3xl py-12">
+                    <div className="text-center mb-4">
+                        <p className="mt-2 text-lg text-muted-foreground">Unlock powerful features and take your creativity to the next level.</p>
                     </div>
 
                     <div className="flex justify-center">
                         <Card className="w-full max-w-md shadow-lg">
-                            <CardHeader className="text-center bg-background/50 p-8">
+                            <CardHeader className="text-center bg-background/50 p-4">
                                 <CardTitle className="text-3xl font-headline">Pro Plan</CardTitle>
                                 <CardDescription className="text-xl text-muted-foreground">$9.99 / month</CardDescription>
                             </CardHeader>
@@ -117,9 +117,7 @@ export default function UpgradePage() {
                     </div>
                 </div>
             </main>
-            <AppFooter onPublish={function (): void {
-                    throw new Error('Function not implemented.');
-                } } isPublishing={false} isCreatingPr={false} />
+            <AppFooter isPublishing={false} isCreatingPr={false} />
         </div>
         </>
     );

@@ -6,7 +6,6 @@ import { useAuth } from '@/components/app/auth-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import { saveSettings, getSettings, disconnectGithub } from '@/actions/content';
 import { Github, Loader2, Trash2, ExternalLink, Settings as SettingsIcon, Crown } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { useAlert } from '@/contexts/AlertContext';
 
 
 const GITHUB_APP_NAME = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
@@ -25,7 +25,7 @@ const PAYPAL_MANAGE_SUBSCRIPTION_URL = process.env.NEXT_PUBLIC_PAYPAL_MANAGE_SUB
 
 function SettingsPageContent() {
     const { user, loading: authLoading } = useAuth();
-    const { toast } = useToast();
+    const { showAlert } = useAlert();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -38,25 +38,17 @@ function SettingsPageContent() {
     const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
     
-    // Gunakan ref untuk melacak pemuatan awal agar useEffect tidak berjalan
-    const isInitialMount = React.useRef(true);
 
     React.useEffect(() => {
-        // Tangani umpan balik dari callback GitHub
         const status = searchParams.get('status');
         const message = searchParams.get('message');
         if (status && message) {
-            toast({
-                title: status === 'success' ? 'Berhasil!' : 'Kesalahan',
-                description: message,
-                variant: status === 'success' ? 'default' : 'destructive',
-            });
-            // Bersihkan URL
+            showAlert(message, status as 'success' | 'error' | 'info');
             router.replace('/settings');
         }
-    }, [searchParams, toast, router]);
+    }, [searchParams, showAlert, router]);
 
-    const fetchRepos = async (installationId?: any) => {
+    const fetchRepos = async () => {
         setIsFetchingRepos(true);
         try {
             const response = await fetch('/api/github/get-repos');
@@ -64,7 +56,7 @@ function SettingsPageContent() {
             if (!response.ok) throw new Error(data.error || 'Failed to fetch repositories.');
             setRepos(data.repositories || []);
         } catch (error: any) {
-            toast({ title: 'Error fetching repos', description: error.message, variant: 'destructive' });
+            showAlert(error.message, 'error');
         } finally {
             setIsFetchingRepos(false);
         }
@@ -79,12 +71,12 @@ function SettingsPageContent() {
             if (!response.ok) throw new Error(data.error || 'Failed to fetch branches');
             setBranches(data.branches || []);
         } catch (error: any) {
-            toast({ title: 'Error fetching branches', description: error.message, variant: 'destructive' });
+            showAlert(error.message, 'error');
         } finally {
             setIsFetchingBranches(false);
         }
     };
-
+    
     const fetchInitialData = React.useCallback(async () => {
         if (!user) return;
         setLoading(true);
@@ -96,107 +88,88 @@ function SettingsPageContent() {
                 
                 if (fetchedSettings.installationId) {
                     if (!fetchedSettings.githubUsername) {
-                        await fetch('/api/github/get-account-info');
+                        // Fetch in background, don't need to await
+                        fetch('/api/github/get-account-info');
                     }
-                await fetchRepos();
+                   await fetchRepos();
                 }
                 if (fetchedSettings.githubRepo) {
-                await fetchBranches(fetchedSettings.githubRepo);
+                   await fetchBranches(fetchedSettings.githubRepo);
                 }
             }
         } catch (error: any) {
-            toast({ title: 'Error', description: `Failed to load initial settings: ${error.message}`, variant: 'destructive' });
+            showAlert(`Failed to load initial settings: ${error.message}`, 'error');
         } finally {
             setLoading(false);
         }
-    }, [user, toast]);
+    }, [user, showAlert]);
 
-    React.useEffect(() => {
-        const status = searchParams.get('status');
-        const message = searchParams.get('message');
-        if (status && message) {
-            toast({
-                title: status === 'success' ? 'Success!' : 'Info',
-                description: message,
-                variant: status === 'success' ? 'default' : 'destructive',
-            });
-            fetchInitialData();
-            router.replace('/settings');
-        }
-    }, [searchParams, toast, router, fetchInitialData]);
 
     React.useEffect(() => {
         fetchInitialData();
     }, [fetchInitialData]);
 
-    const handleRepoChange = (repoFullName: string) => {
+    const handleRepoChange = async (repoFullName: string) => {
         setSettings((prev: any) => ({ ...prev, githubRepo: repoFullName, githubBranch: '' }));
         setBranches([]);
         if (repoFullName) {
-            fetchBranches(repoFullName);
+           await fetchBranches(repoFullName);
         }
     };
 
-    const handleBranchChange = (branch: string) => {
-        setSettings((prev: any) => ({ ...prev, githubBranch: branch }));
-    };
+    const handleBranchChange = async (branch: string) => {
+        const newSettings = { ...settings, githubBranch: branch };
+        setSettings(newSettings);
 
-    // useEffect untuk penyimpanan otomatis
-    React.useEffect(() => {
-        // Jangan jalankan pada pemuatan pertama
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-
-        const handleAutoSave = async () => {
-            // Hanya simpan jika kedua nilai ada
-            if (settings.githubRepo && settings.githubBranch) {
-                setIsSaving(true);
-                try {
-                    const result = await saveSettings({
-                        githubRepo: settings.githubRepo,
-                        githubBranch: settings.githubBranch
-                    });
-                    if (result.success) {
-                        toast({ title: 'Pengaturan disimpan secara otomatis!' });
-                    } else {
-                        throw new Error(result.error || 'Gagal menyimpan pengaturan.');
-                    }
-                } catch (error: any) {
-                    toast({ title: 'Error saving settings', description: error.message, variant: 'destructive' });
-                } finally {
-                    setIsSaving(false);
+        if (newSettings.githubRepo && branch) {
+            setIsSaving(true);
+            try {
+                const result = await saveSettings({
+                    githubRepo: newSettings.githubRepo,
+                    githubBranch: branch
+                });
+                if (result.success) {
+                    showAlert('Pengaturan berhasil disimpan!', 'success');
+                } else {
+                    throw new Error(result.error || 'Gagal menyimpan pengaturan.');
                 }
+            } catch (error: any) {
+                showAlert(error.message, 'error');
+            } finally {
+                setIsSaving(false);
             }
-        };
-
-        handleAutoSave();
-    }, [settings.githubRepo, settings.githubBranch, toast]);
+        }
+    };
 
 
     const handleReconnect = () => {
         const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME;
-        window.location.href = `https://github.com/apps/${appName}/installations/new`;
+        if (appName) {
+            window.location.href = `https://github.com/apps/${appName}/installations/new`;
+        } else {
+            showAlert("Konfigurasi nama aplikasi GitHub tidak ditemukan.", "error");
+        }
     };
     
     const handleDisconnect = async () => {
         setIsDisconnecting(true);
         try {
+            const currentInstallationId = settings.installationId;
             const result = await disconnectGithub();
             if (result.success) {
-                toast({ title: 'GitHub Terputus', description: 'Mengarahkan Anda untuk menghapus instalasi aplikasi...' });
-                // Atur ulang status
-                setSettings({ installationId: '', githubRepo: '', githubBranch: '' });
+                showAlert('GitHub Terputus. Mengarahkan Anda untuk menghapus instalasi aplikasi...', 'info');
+                setSettings({});
                 setRepos([]);
                 setBranches([]);
-                // Lebih aman membaca installationId dari status sebelum meresetnya.
-                window.location.href = `https://github.com/settings/installations/${settings.installationId}`;
+                if (currentInstallationId) {
+                    window.location.href = `https://github.com/settings/installations/${currentInstallationId}`;
+                }
             } else {
                 throw new Error(result.error || 'Gagal memutuskan sambungan.');
             }
         } catch (error: any) {
-            toast({ title: 'Kesalahan', description: error.message, variant: 'destructive' });
+            showAlert(error.message, 'error');
+        } finally {
             setIsDisconnecting(false);
         }
     };
@@ -255,33 +228,17 @@ function SettingsPageContent() {
 
                         </CardContent>
                         <CardFooter className="border-t pt-6">
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" className="w-full" disabled={!settings.installationId || isDisconnecting}>
-                                        <Trash2 className="mr-2 h-4 w-4" /> 
-                                        {isDisconnecting ? 'Disconnecting...' : 'Disconnect GitHub'}
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will remove your repository connection. You will be redirected to GitHub to uninstall the app to fully complete the process.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDisconnect} className="bg-destructive hover:bg-destructive/90">
-                                            Yes, Disconnect
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            {user.role === 'freeUser' && (
+                                <Button className="w-full" onClick={() => router.push('/upgrade')}>
+                                    <Crown className="mr-2 h-4 w-4" />
+                                    Upgrade to Pro
+                                </Button>
+                            )}
                         </CardFooter>
                     </Card>
 
                     {/* GitHub Settings Card */}
-                    <Card className="md:col-span-2">
+                    <Card className="md:col-span-2 flex flex-col">
                         <CardHeader>
                             <div className="flex justify-between items-center gap-2">
                                 <div className="flex items-center gap-2">
@@ -290,14 +247,14 @@ function SettingsPageContent() {
                                 </div>
                                 {isSaving && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                             </div>
-                            <CardDescription>Pilih repositori dan cabang untuk mempublikasikan situs Jekyll Anda. Pengaturan akan disimpan secara otomatis.</CardDescription>
+                            <CardDescription>Pilih repositori dan cabang untuk mempublikasikan situs Jekyll Anda. Pengaturan akan disimpan secara otomatis setelah Anda memilih cabang.</CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-grow">
                             {!settings.installationId ? (
-                                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted p-8 text-center">
+                                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted p-8 text-center h-full">
                                     <p className="mb-4 text-muted-foreground">The first step is to connect the GitHub App.</p>
                                     <Button asChild>
-                                        <a href={GITHUB_APP_URL} target="_blank" rel="noopener noreferrer">
+                                        <a href={GITHUB_APP_URL}>
                                             <Github className="mr-2 h-4 w-4" />
                                             Connect with GitHub
                                         </a>
@@ -348,19 +305,42 @@ function SettingsPageContent() {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    
-                                    <div className="flex justify-start items-center pt-2">
-                                        <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
-                                            Sync / Change Permissions
-                                        </Button>
-                                    </div>
                                 </form>
                             )}
                         </CardContent>
+                        {settings.installationId && (
+                             <CardFooter className="border-t flex justify-between pt-6 mt-auto">
+                                        <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
+                                            Change Permissions
+                                        </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="sm" className="w-fit" disabled={isDisconnecting}>
+                                            <Trash2 className="mr-2 h-4 w-4" /> 
+                                            {isDisconnecting ? 'Disconnecting...' : 'Disconnect GitHub'}
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will remove your repository connection. You will be redirected to GitHub to uninstall the app to fully complete the process.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDisconnect} className="bg-destructive hover:bg-destructive/90">
+                                                Yes, Disconnect
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardFooter>
+                        )}
                     </Card>
                 </div>
             </main>
-            <AppFooter onPublish={undefined} isPublishing={false} isCreatingPr={false} />
+            <AppFooter isPublishing={false} isCreatingPr={false} />
         </div>
     );
 }

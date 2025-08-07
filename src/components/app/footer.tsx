@@ -31,7 +31,7 @@ const GradientButton = React.forwardRef<
 GradientButton.displayName = 'GradientButton';
 
 type AppFooterProps = {
-    onPublish: () => void;
+    onPublish?: () => void;
     onPullRequest?: (details: { title: string, body: string }) => void;
     isPublishing: boolean;
     isCreatingPr: boolean;
@@ -57,7 +57,7 @@ export function AppFooter({ onPublish, onPullRequest, isPublishing = false, isCr
           <DialogTrigger asChild>
             <Button variant="outline" disabled={isCreatingPr || isPublishing}>
               <GitPullRequestCreate className="mr-2" />
-              {isCreatingPr ? 'Creating PR...' : 'Create Pull Request'}
+              {isCreatingPr ? 'Creating PR...' : 'Pull Request'}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[400px]">
@@ -101,7 +101,7 @@ export function AppFooter({ onPublish, onPullRequest, isPublishing = false, isCr
           </DialogContent>
         </Dialog>
       )}
-
+      {onPublish && (
       <GradientButton onClick={onPublish} disabled={isPublishing || !onPublish || isCreatingPr}>
         {isPublishing ? (
           <>
@@ -115,6 +115,7 @@ export function AppFooter({ onPublish, onPullRequest, isPublishing = false, isCr
           </>
         )}
       </GradientButton>
+      )}
     </footer>
   );
 }

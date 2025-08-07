@@ -19,7 +19,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {Button} from '@/components/ui/button';
-import {PanelLeft, Sparkles, Plus, FolderPlus} from 'lucide-react';
+import {PanelLeft, Sparkles, Plus, FolderPlus, Trash2} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {AppFooter} from '@/components/app/footer';
 import {generateJekyllComponent} from '@/ai/flows/jekyll-generator-flow';
@@ -55,6 +55,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {Textarea} from '@/components/ui/textarea';
+import { checkAndRecordComponentGeneration } from '@/actions/user';
 
 const initialFileStructure: FileNode[] = [
   {
@@ -288,6 +289,7 @@ layout: default
 title: "Welcome to Jekyll!"
 image: "https://placehold.co/600x400?text=Jekyll-World"
 date: 2024-01-01 00:00:00 -0000
+author: "Jekyll-Buildr"
 categories: jekyll update
 ---
 You’ll find this post in your \`_posts\` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run \`bundle exec jekyll serve\`, which launches a web server and auto-regenerates your site when a file is updated.
@@ -303,7 +305,7 @@ To add new posts, simply add a file in the \`_posts\` directory that follows the
 `,
   'assets/js/script.js': `/* Add your Javascript code here */
 `,
-  Gemfile: `source "https://rubygems.org"
+  'Gemfile': `source "https://rubygems.org"
 
 gem "jekyll"
 gem "jekyll-feed"
@@ -700,6 +702,17 @@ function HomePageContent() {
   const handleGenerateComponent = React.useCallback(
     async (prompt: string) => {
       try {
+         // Langkah 1: Periksa izin sebelum menghasilkan
+        const checkResult = await checkAndRecordComponentGeneration();
+        if (!checkResult.success) {
+            toast({
+                title: 'Limit Reached',
+                description: checkResult.error,
+                variant: 'destructive',
+            });
+            return; // Hentikan eksekusi jika tidak diizinkan
+        }
+
         const result = await generateJekyllComponent(prompt);
         const {filename, content: newContent} = result;
 
@@ -1116,7 +1129,7 @@ function HomePageContent() {
                         <p>Generate with AI</p>
                       </TooltipContent>
                     </Tooltip>
-                    <DialogContent className="sm:max-w-[425px]">
+                    <DialogContent className="sm:max-w-[425px] w-96 md:w-full">
                       <DialogHeader>
                         <DialogTitle className="font-headline">
                           Generate Jekyll Component
