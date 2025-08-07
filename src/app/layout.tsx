@@ -16,6 +16,20 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <meta charSet="UTF-8" />
+        <meta property="twitter:image" content="/og-image.png"/>
+        <meta property="twitter:card" content="summary_large_image"></meta>
+        <meta property="twitter:title" content="Jekyll Buildr"></meta>
+        <meta property="twitter:description" content="Create and publish Jekyll templates with ease."></meta>
+        <meta property="og:image" content="/og-image.png"></meta>
+        <meta property="og:site_name" content="Jekyll Buildr"></meta>
+        <meta property="og:title" content="Jekyll Buildr"></meta>
+        <meta property="og:description" content="Create and publish Jekyll templates with ease."></meta>
+        <meta property="og:url" content="https://jekyll-buildr.vercel.app"></meta>
+        <meta name="description" content="Create and publish Jekyll templates with ease." />
+        <meta name="keywords" content="Jekyll, templates, build, publish, web development" />
+        <meta name="author" content="Jekyll Buildr Team" />
+        <meta name="robots" content="index, follow" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

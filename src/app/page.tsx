@@ -20,7 +20,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {Button} from '@/components/ui/button';
-import {PanelLeft, Sparkles, Plus, FolderPlus} from 'lucide-react';
+import {PanelLeft, Sparkles, Plus, FolderPlus, Save} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {AppFooter} from '@/components/app/footer';
 import {generateJekyllComponent} from '@/ai/flows/jekyll-generator-flow';
@@ -245,9 +245,7 @@ layout: default
           {{ page.title }}
         </h2>
 
-      {% if page.image %}
         <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 rounded-md object-cover">
-      {% endif %}
 
   <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
     {{ content }}
@@ -286,7 +284,7 @@ layout: default
 `,
   '_includes/footer.html': `<footer class="w-full bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-700">
     <div class="container mx-auto py-5 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-      <p>&copy; {% capture current_year %}{{ 'now' | date: '%Y' }}{% endcapture %}{{ current_year }} {{ site.title }} <br /> Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank"> Jekyll-Buildr</a> by Daffa</p>
+      <p>&copy; {% capture current_year %}{{ 'now' | date: '%Y' }}{% endcapture %}{{ current_year }} {{ site.title }} <br /> Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
     </div>
   </footer>
 `,
@@ -359,16 +357,19 @@ function HomePageContent() {
       if (user) {
         const result = await getTemplateState();
         if (result.success && result.data) {
+          // Add more robust checking to ensure all expected data is present
           const { fileStructure, activeFile, fileContents, expandedFolders } = result.data;
-          setFileStructure(fileStructure);
-          setActiveFile(activeFile);
-          setFileContents(fileContents);
-          setExpandedFolders(new Set(expandedFolders));
-          setContent(fileContents[activeFile] ?? '');
-          toast({
-            title: 'State Restored',
-            description: 'Your previous session has been restored.',
-          });
+          if (fileStructure && activeFile && fileContents && expandedFolders) {
+            setFileStructure(fileStructure);
+            setActiveFile(activeFile);
+            setFileContents(fileContents);
+            setExpandedFolders(new Set(expandedFolders));
+            setContent(fileContents[activeFile] ?? '');
+            toast({
+              title: 'State Restored',
+              description: 'Your previous session has been restored.',
+            });
+          }
         }
       }
     };
@@ -408,7 +409,8 @@ function HomePageContent() {
 
   // Unified content state for the editor
   const [content, setContent] = React.useState(
-    fileContents[activeFile] ?? ''
+    // Safer initialization: check if fileContents exists before accessing it.
+    fileContents ? fileContents[activeFile] ?? '' : ''
   );
 
   const handleActiveFileChange = (path: string) => {
