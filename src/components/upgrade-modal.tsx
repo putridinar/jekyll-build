@@ -104,7 +104,7 @@ export function UpgradeModal({ isOpen, onOpenChange }: UpgradeModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md rounded-md w-96 md:w-full h-[90%]">
+        <DialogContent className="max-w-md rounded-md w-full md:w-full h-fit">
             <DialogHeader className="text-center">
                 <div className="mx-auto w-fit rounded-full bg-yellow-400/20 p-2 mb-2 text-yellow-500">
                     <Star className="h-6 w-6" />

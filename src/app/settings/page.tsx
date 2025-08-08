@@ -21,10 +21,10 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { UpgradeModal } from '@/components/upgrade-modal';
 
 
-const GITHUB_APP_NAME = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
+const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
 const PAYPAL_MANAGE_SUBSCRIPTION_URL = process.env.NEXT_PUBLIC_PAYPAL_MANAGE_SUBSCRIPTION_URL || 'https://www.paypal.com/myaccount/autopay/';
 
-const GITHUB_APP_URL = "";
+const GITHUB_APP_URL = `https://github.com/apps/${appName}/installations/new`;
 
 function SettingsPageContent() {
     const { user, loading: authLoading } = useAuth();
@@ -109,7 +109,6 @@ function SettingsPageContent() {
                 
                 if (fetchedSettings.installationId) {
                     if (!fetchedSettings.githubUsername) {
-                        // Fetch in background, don't need to await
                         fetch('/api/github/get-account-info');
                     }
                    await fetchRepos();
@@ -346,20 +345,18 @@ function SettingsPageContent() {
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        
-                                        <div className="flex justify-start items-center pt-2">
-                                            <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
-                                                Sync / Change Permissions
-                                            </Button>
-                                        </div>
                                     </form>
                                 )}
                             </CardContent>
                             {settings.installationId && (
                                  <CardFooter className="border-t pt-6 mt-auto">
+                                        <div className="flex justify-between items-center w-full p-2">
+                                            <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
+                                                Change Permissions
+                                            </Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button variant="destructive" className="w-full" disabled={isDisconnecting}>
+                                            <Button variant="destructive" className="w-fit" size="sm" disabled={isDisconnecting}>
                                                 <Trash2 className="mr-2 h-4 w-4" /> 
                                                 {isDisconnecting ? 'Disconnecting...' : 'Disconnect GitHub'}
                                             </Button>
@@ -379,6 +376,7 @@ function SettingsPageContent() {
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
+                                        </div>
                                 </CardFooter>
                             )}
                         </Card>

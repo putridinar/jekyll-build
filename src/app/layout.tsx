@@ -27,11 +27,11 @@ export default function RootLayout({
         <meta property="twitter:creator" content="@jekyllBuildr"></meta>
         <meta property="twitter:title" content="jekyllBuildr"></meta>
         <meta property="twitter:description" content="jekyllBuildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
-        <meta property="twitter:image" content="https://jekyll-buildr.vercel.app/og-image.jpg"></meta>
+        <meta property="twitter:image" content="https://jekyll-buildr.vercel.app/og-image.png"></meta>
 
         <meta property="og:title" content="Jekyll Buildr"></meta>
         <meta property="og:description" content="Jekyll Buildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
-        <meta property="og:image" content="https://jekyll-buildr.vercel.app/og-image.jpg"></meta>
+        <meta property="og:image" content="https://jekyll-buildr.vercel.app/og-image.png"></meta>
         <meta property="og:url" content="https://jekyll-buildr.vercel.app"></meta>
         <meta property="og:type" content="website"></meta>
 
