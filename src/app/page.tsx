@@ -20,12 +20,11 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {Button} from '@/components/ui/button';
-import {PanelLeft, Sparkles, Plus, FolderPlus, Save} from 'lucide-react';
+import {PanelLeft, Sparkles, Plus, FolderPlus} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {AppFooter} from '@/components/app/footer';
 import {generateJekyllComponent} from '@/ai/flows/jekyll-generator-flow';
 import {useAuth} from '@/hooks/use-auth';
-import {generateImage} from '@/actions/ai';
 import {IconSidebar} from '@/components/app/icon-sidebar';
 import {
   publishTemplateFiles,
@@ -307,7 +306,7 @@ To add new posts, simply add a file in the \`_posts\` directory that follows the
 `,
   'assets/js/script.js': `/* Add your Javascript code here */
 `,
-  Gemfile: `source "https://rubygems.org"
+  'Gemfile': `source "https://rubygems.org"
 
 gem "jekyll"
 gem "jekyll-feed"
@@ -354,23 +353,29 @@ function HomePageContent() {
 
   React.useEffect(() => {
     const loadState = async () => {
-      if (user) {
-        const result = await getTemplateState();
-        if (result.success && result.data) {
-          const { fileStructure, activeFile, fileContents, expandedFolders } = result.data;
-          if (fileStructure && activeFile && fileContents && expandedFolders) {
-            setFileStructure(fileStructure);
-            setActiveFile(activeFile);
-            setFileContents(fileContents);
-            setExpandedFolders(new Set(expandedFolders));
-            setContent(fileContents[activeFile] ?? '');
-            toast({
-              title: 'State Restored',
-              description: 'Your previous session has been restored.',
-            });
-          }
+        if (user) {
+            const result = await getTemplateState();
+            // Check for both success and the existence of data. Also check for all required properties.
+            if (result.success && result.data && 
+                result.data.fileStructure && 
+                result.data.activeFile && 
+                result.data.fileContents && 
+                result.data.expandedFolders) {
+                
+                const { fileStructure, activeFile, fileContents, expandedFolders } = result.data;
+                
+                setFileStructure(fileStructure);
+                setActiveFile(activeFile);
+                setFileContents(fileContents);
+                setExpandedFolders(new Set(expandedFolders));
+                setContent(fileContents[activeFile] ?? ''); // Set initial content for the editor
+                
+                toast({
+                    title: 'State Restored',
+                    description: 'Your previous session has been restored.',
+                });
+            }
         }
-      }
     };
     loadState();
   }, [user, toast]);
@@ -406,6 +411,7 @@ function HomePageContent() {
     debouncedSave(stateToSave);
   }, [fileStructure, activeFile, fileContents, expandedFolders, debouncedSave, loading, user]);
 
+  // Unified content state for the editor
   const [content, setContent] = React.useState(
     fileContents?.[activeFile] ?? ''
   );
@@ -778,32 +784,6 @@ function HomePageContent() {
     [toast]
   );
 
-  const handleAiImageGenerated = React.useCallback(
-    (imageData: {filename: string; content: string}) => {
-      const {filename, content: newContent} = imageData;
-      const imagePath = `assets/images/${filename}`;
-
-      const newFile: FileNode = {
-        name: filename,
-        path: imagePath,
-        type: 'file',
-      };
-
-      // Using the robust recursive action to add the file
-      setFileStructure((prev) =>
-        recursiveFileAction(prev, 'assets/images', (nodes) => [...nodes, newFile], null)
-      );
-      setFileContents((prev) => ({...prev, [imagePath]: newContent}));
-      setExpandedFolders((prev) => new Set(prev).add('assets/images')); // Ensure folder is expanded
-
-      toast({
-        title: 'Image Generated',
-        description: `${filename} has been added to assets/images.`,
-      });
-    },
-    [toast]
-  );
-
   const handleImageUpload = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -821,20 +801,23 @@ function HomePageContent() {
 
       const imagePath = `assets/images/${file.name}`;
       const newFile: FileNode = {name: file.name, path: imagePath, type: 'file'};
-
       const reader = new FileReader();
+      
       reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
+        
+        // Use the robust recursive action to add the file
         setFileStructure((prev) =>
-          recursiveFileAction(
-            prev,
-            'assets/images',
-            (nodes) => [...nodes, newFile],
-            null
-          )
+          recursiveFileAction(prev, 'assets/images', (nodes) => {
+            // Prevent duplicates
+            if (nodes.some(n => n.path === imagePath)) return nodes;
+            return [...nodes, newFile];
+          }, null)
         );
+        
         setFileContents((prev) => ({...prev, [imagePath]: dataUrl}));
-        setExpandedFolders((prev) => new Set(prev).add('assets/images'));
+        setExpandedFolders((prev) => new Set(prev).add('assets/images')); // Ensure folder is expanded
+        
         toast({
           title: 'Image Uploaded',
           description: `${file.name} has been added to assets/images.`,
@@ -847,6 +830,7 @@ function HomePageContent() {
     },
     [toast]
   );
+
 
   const collectFilesToCommit = () => {
     const filesToCommit: {
@@ -1074,7 +1058,6 @@ function HomePageContent() {
       activeFile={activeFile}
       onFileSelect={handleActiveFileChange}
       onUploadClick={() => uploadInputRef.current?.click()}
-      onAiImageGenerated={handleAiImageGenerated}
       user={user}
       expandedFolders={expandedFolders}
       onFolderToggle={folderToggle}

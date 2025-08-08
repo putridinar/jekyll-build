@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -28,11 +28,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader2, Sparkles, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent } from '@/actions/content';
+import { generateImage } from '@/actions/ai';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { generatePostContent } from '@/ai/flows/post-generator-flow';
-import { checkAndRecordPostGeneration } from '@/actions/user';
+import { checkAndRecordPostGeneration, checkAndRecordImageGeneration } from '@/actions/user';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -44,8 +45,64 @@ const formSchema = z.object({
 
 type PostFormValues = z.infer<typeof formSchema>;
 
-function ImageUpload({ field }: { field: any }) {
-  const [preview, setPreview] = React.useState<string | null>(field.value);
+
+function AiImageGenerateButton({ form }: { form: UseFormReturn<PostFormValues> }) {
+    const { toast } = useToast();
+    const [isGenerating, setIsGenerating] = React.useState(false);
+  
+    const handleGenerate = async () => {
+      const title = form.getValues('title');
+      if (!title) {
+          toast({
+              variant: 'destructive',
+              title: 'Title is required',
+              description: 'Please enter a title before generating an image.',
+          });
+          return;
+      }
+      const prompt = title;
+
+      setIsGenerating(true);
+      toast({ title: 'Generating image...', description: 'This may take a moment.' });
+      
+      try {
+        const checkResult = await checkAndRecordImageGeneration();
+        if (!checkResult.success) {
+            toast({
+                title: 'Limit Reached',
+                description: checkResult.error,
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const result = await generateImage(prompt);
+        if (result.success && result.data) {
+          form.setValue('mainImage', result.data.content, { shouldValidate: true });
+          toast({ title: 'Image Generated!', description: 'The new image has been set as the main image.' });
+        } else {
+          throw new Error(result.error || 'Failed to generate image.');
+        }
+      } catch (error: any) {
+        toast({
+          title: 'Generation Failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsGenerating(false);
+      }
+    };
+  
+    return (
+        <Button size="sm" variant="outline" type="button" onClick={handleGenerate} disabled={isGenerating}>
+            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            {isGenerating ? 'Generating...' : 'Generate with AI'}
+        </Button>
+    );
+}
+
+function ImageUpload({ field, form }: { field: any, form: UseFormReturn<PostFormValues> }) {
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +119,6 @@ function ImageUpload({ field }: { field: any }) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
-        setPreview(dataUrl);
         field.onChange(dataUrl);
       };
       reader.readAsDataURL(file);
@@ -74,9 +130,9 @@ function ImageUpload({ field }: { field: any }) {
       <FormLabel>Image</FormLabel>
       <div className="flex items-center gap-4">
         <div className="w-24 h-24 rounded-md border border-dashed flex items-center justify-center bg-muted/50">
-          {preview ? (
+          {field.value ? (
             <Image
-              src={preview}
+              src={field.value}
               alt="Image preview"
               width={96}
               height={96}
@@ -86,12 +142,15 @@ function ImageUpload({ field }: { field: any }) {
             <UploadCloud className="h-8 w-8 text-muted-foreground" />
           )}
         </div>
-        <Input
-          type="file"
-          accept="image/png, image/jpeg, image/webp"
-          onChange={handleFileChange}
-          className="flex-1"
-        />
+        <div className="flex-1 space-y-2">
+            <Input
+              type="file"
+              accept="image/png, image/jpeg, image/webp"
+              onChange={handleFileChange}
+              className="flex-1"
+            />
+            <AiImageGenerateButton form={form} />
+        </div>
       </div>
        <FormMessage />
     </div>
@@ -128,7 +187,17 @@ export function PostEditor({
     if (user?.displayName) {
       form.setValue('author', user.displayName);
     }
-  }, [user, form]);
+    // Reset form when the sheet is closed
+    if (!open) {
+        form.reset({
+            title: '',
+            author: user?.displayName || '',
+            categories: '',
+            mainImage: '',
+            content: '',
+        });
+    }
+  }, [user, open, form]);
 
 
   const onSubmit = async (values: PostFormValues) => {
@@ -252,7 +321,7 @@ export function PostEditor({
               <FormField
                 control={form.control}
                 name="mainImage"
-                render={({ field }) => <ImageUpload field={field} />}
+                render={({ field }) => <ImageUpload field={field} form={form} />}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -311,7 +380,7 @@ export function PostEditor({
             ) : (
                 <Sparkles className="mr-2 h-4 w-4" />
             )}
-            Generate with AI
+            Generate Content
           </Button>
           <Button type="submit" size="sm" form="post-form" disabled={isSubmitting || isGenerating}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

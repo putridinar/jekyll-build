@@ -41,7 +41,16 @@ function SettingsPageContent() {
     const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
     const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
-    
+
+    // Moved useMemo hook to the top to ensure unconditional hook calls
+    const githubPagesUrl = React.useMemo(() => {
+        if (settings.githubRepo) {
+            const [owner, repoName] = settings.githubRepo.split('/');
+            return `https://${owner}.github.io/${repoName}/`;
+        }
+        return null;
+    }, [settings.githubRepo]);
+
     React.useEffect(() => {
         if (!authLoading && !user) {
             router.push('/login');
@@ -234,15 +243,26 @@ function SettingsPageContent() {
                     <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
                         {/* Profile Card */}
                         <Card className="md:col-span-1">
-                            <CardHeader className="flex flex-row items-center gap-4">
-                                <Avatar className="h-14 w-14">
-                                    <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                                    <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className="text-xl font-headline">{user.displayName}</CardTitle>
-                                    <CardDescription>{user.email}</CardDescription>
+                            <CardHeader className="flex flex-row justify-between items-center gap-4">
+                                <div className='flex flex-col space-y-3'>
+                                    <Avatar className="h-14 w-14">
+                                        <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                                        <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <CardTitle className="text-xl font-headline">{user.displayName}</CardTitle>
+                                        <CardDescription>{user.email}</CardDescription>
+                                    </div>
                                 </div>
+                                {githubPagesUrl && (
+                                    <div>
+                                        <Button variant="outline" size="sm" className="mt-1" asChild>
+                                            <a href={githubPagesUrl} target="_blank" rel="noopener noreferrer">
+                                                View Site <ExternalLink className="ml-2 h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                    </div>
+                                )}
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
@@ -265,16 +285,15 @@ function SettingsPageContent() {
                                         </Button>
                                     </div>
                                 )}
-
                             </CardContent>
+                        {user.role === 'freeUser' && (
                             <CardFooter className="border-t pt-6">
-                                {user.role === 'freeUser' && (
                                     <Button className="w-full" onClick={() => setUpgradeModalOpen(true)}>
                                         <Crown className="mr-2 h-4 w-4" />
                                         Upgrade to Pro
                                     </Button>
-                                )}
                             </CardFooter>
+                        )}
                         </Card>
 
                         {/* GitHub Settings Card */}
@@ -358,7 +377,7 @@ function SettingsPageContent() {
                                         <AlertDialogTrigger asChild>
                                             <Button variant="destructive" className="w-fit" size="sm" disabled={isDisconnecting}>
                                                 <Trash2 className="mr-2 h-4 w-4" /> 
-                                                {isDisconnecting ? 'Disconnecting...' : 'Disconnect GitHub'}
+                                                {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
                                             </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
