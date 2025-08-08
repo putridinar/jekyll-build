@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AppWrapper from "@/components/app/AppWrapper";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { PayPalProvider } from "@/components/paypal-provider";
@@ -49,7 +50,11 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <PayPalProvider>{children}</PayPalProvider>
+          <PayPalProvider>
+            <AppWrapper>
+              {children}
+            </AppWrapper>
+          </PayPalProvider>
           <Toaster />
         </AuthProvider>
       </body>

@@ -127,7 +127,7 @@ const initialFileStructure: FileNode[] = [
 ];
 
 const initialFileContents: {[key: string]: string} = {
-  '_config.yml': `title: My Awesome Jekyll Site
+  '_config.yml': `title: My Jekyll Site
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
 baseurl: "" # subpath situs Anda, mis. /blog
@@ -240,11 +240,13 @@ layout: default
 ---
 <article class="post h-entry px-4 py-8 max-w-3xl mx-auto" itemscope itemtype="http://schema.org/BlogPosting">
 
-        <h2 class="mb-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
+        <h2 class="mb-4 text-lg font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
           {{ page.title }}
         </h2>
 
-        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-55 rounded-md object-cover">
+      {% if page.image %}
+        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-58 rounded-md shadow object-cover">
+      {% endif %}
 
   <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
     {{ content }}
@@ -721,7 +723,7 @@ function HomePageContent() {
             return; // Hentikan eksekusi jika tidak diizinkan
         }
 
-        const result = await generateJekyllComponent(prompt);
+        const result = await generateJekyllComponent(prompt, activeFile);
         const {filename, content: newContent} = result;
 
         const newFile: FileNode = {
@@ -779,6 +781,8 @@ function HomePageContent() {
           description: 'Something went wrong while generating the component.',
           variant: 'destructive',
         });
+      } finally {
+        setIsGenerating(false);
       }
     },
     [toast]

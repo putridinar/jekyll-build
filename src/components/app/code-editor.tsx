@@ -12,7 +12,6 @@ import 'prismjs/components/prism-markdown';
 import 'prismjs/components/prism-ruby';
 import { Card, CardContent } from '../ui/card';
 import { Save } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 type CodeEditorProps = {
   activeFile: string;

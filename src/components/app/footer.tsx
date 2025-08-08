@@ -50,13 +50,16 @@ export function AppFooter({ onPublish, onPullRequest, isPublishing = false, isCr
   };
 
   return (
-    <footer className="flex h-14 shrink-0 items-center justify-between md:justify-end md:gap-2 border-t px-4 lg:px-6">
+    <>
+    <footer className="flex flex-col-reverse w-full gap-2 md:flex-row h-18 shrink-0 items-center justify-between border-t py-3 px-2 lg:px-6">
+      <span id="app-footer" className='text-sm md:text-md text-orange-400'>DaffaDev</span>
+      <div className='flex justify-between items-center w-full md:justify-end md:gap-4'>
       {onPullRequest && (
         <Dialog open={prDialogOpen} onOpenChange={setPrDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" disabled={isCreatingPr || isPublishing}>
               <GitPullRequestCreate className="mr-2" />
-              {isCreatingPr ? 'Creating PR...' : 'Create Pull Request'}
+              {isCreatingPr ? 'Creating PR...' : 'Pull Request'}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[400px]">
@@ -116,6 +119,8 @@ export function AppFooter({ onPublish, onPullRequest, isPublishing = false, isCr
             )}
         </GradientButton>
       )}
+      </div>
     </footer>
+    </>
   );
 }

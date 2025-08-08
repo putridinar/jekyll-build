@@ -35,9 +35,9 @@ const imageGenerationFlow = ai.defineFlow(
     const base64Data = media.url.split(',')[1];
     const imageBuffer = Buffer.from(base64Data, 'base64');
     
-    // Proses dengan sharp: ubah ukuran ke 512x512 dan kompres ke WebP
+    // Proses dengan sharp: ubah ukuran ke 1024x1024 dan kompres ke WebP
     const processedImageBuffer = await sharp(imageBuffer)
-        .resize(512, 512)
+        .resize(1024, 1024)
         .webp({ quality: 80 }) // Kualitas 80 adalah keseimbangan yang baik
         .toBuffer();
 

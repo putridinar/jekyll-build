@@ -15,14 +15,18 @@ const JekyllComponentOutputSchema = z.object({
 });
 export type JekyllComponentOutput = z.infer<typeof JekyllComponentOutputSchema>;
 
+// Input schema diperbarui untuk menerima path file yang aktif (opsional)
 const JekyllGeneratorInputSchema = z.object({
   prompt: z.string(),
+  activeFilePath: z.string().optional(),
 });
 
+// Fungsi utama diperbarui untuk menerima parameter baru
 export async function generateJekyllComponent(
-  promptText: string
+  promptText: string,
+  activeFilePath?: string
 ): Promise<JekyllComponentOutput> {
-  return jekyllGeneratorFlow({ prompt: promptText });
+  return jekyllGeneratorFlow({ prompt: promptText, activeFilePath });
 }
 
 const jekyllGeneratorFlow = ai.defineFlow(
@@ -32,30 +36,76 @@ const jekyllGeneratorFlow = ai.defineFlow(
     outputSchema: JekyllComponentOutputSchema,
   },
   async (input) => {
-    const { output } = await ai.generate({
-        prompt: `You are an expert web developer specializing in Jekyll and Tailwind CSS.
-Your task is to generate a single file for a Jekyll component or layout based on the user's request.
+    
+    // ======== PEMBARUAN LOGIKA PROMPT DIMULAI DI SINI ========
 
-**Instructions:**
-1.  **Analyze the Request:** Understand what the user wants to create (e.g., a header, a post layout, a footer, an include).
-2.  **Determine File Path:** Based on Jekyll conventions, decide the appropriate folder and filename.
-    *   Layouts go in \`_layouts/\`, e.g., \`_layouts/post.html\`.
-    *   Reusable components go in \`_includes/\`, e.g., \`_includes/navigation.html\`.
-    *   CSS should be linked as if it's in \`/assets/css/style.css\`. Assume Tailwind CSS is set up and processed into this file.
-3.  **Generate Code:**
-    *   Write clean, semantic HTML.
-    *   Use Tailwind CSS classes for styling. Do not use inline styles or \`<style>\` blocks.
-    *   Use Liquid templating tags (\`{{ ... }}\`, \`{% ... %}\`) where appropriate for dynamic content (e.g., \`{{ site.title }}\`, \`{{ page.content }}\`).
-    *   If the user asks for JavaScript, include it within a \`<script>\` tag in the same file. Keep it minimal and vanilla JS unless specified otherwise.
-4.  **Format Output:** Return a single JSON object with two keys: "filename" and "content".
+    const isContextual = !!input.activeFilePath;
 
-**User Request:**
+    const basePrompt = `**Peran:**
+Anda adalah seorang pengembang web ahli yang sangat mahir dalam membuat situs menggunakan Jekyll dan menerapkan styling dengan Tailwind CSS.
+
+**Konteks Proyek:**
+- Ini adalah situs blog standar yang dibuat dengan Jekyll.
+- Styling utama menggunakan **Tailwind CSS**. Asumsikan Tailwind sudah terkonfigurasi.
+- Struktur direktori mengikuti konvensi Jekyll (\`_layouts\`, \`_includes\`, \`_posts\`, dll).
+
+**Instruksi Penting:**
+1.  **Gunakan HTML Semantik:** Tulis kode HTML yang terstruktur dengan baik.
+2.  **Gunakan Tailwind CSS:** Untuk semua styling, gunakan kelas-kelas utility dari Tailwind CSS. **Jangan gunakan inline style (\`style="..."\`) atau tag \`<style>\`**.
+3.  **Gunakan Liquid Syntax:** Gunakan tag Liquid (\`{{ ... }}\` dan \`{% ... %}\`) untuk konten dinamis jika diperlukan.
+4.  **Format Output:** Kembalikan objek JSON tunggal dengan dua kunci: "filename" dan "content".`;
+
+    const contextualPrompt = `
+**Tugas:**
+Berdasarkan **konteks file saat ini** dan **permintaan pengguna**, hasilkan kode untuk komponen Jekyll tersebut. Fokus hanya pada konten untuk file yang ditentukan.
+
+**Konteks Saat Ini:**
+- **File yang Sedang Diedit:** \`${input.activeFilePath}\`
+
+**Aturan Kontekstual:**
+- Hasilkan kode HANYA untuk file yang disebutkan di atas.
+- Untuk file di \`_layouts/\` (selain \`default.html\`), **JANGAN** sertakan tag \`<html>\`, \`<head>\`, atau \`<body>\`.
+- Untuk file di \`_includes/\`, hasilkan **HANYA** fragmen HTML yang relevan untuk komponen tersebut.
+- Untuk file di \`_posts/\`, fokus pada penulisan *front matter* dan konten dalam format Markdown.
+
+**Permintaan Pengguna:**
 ${input.prompt}
-`,
+`;
+
+    const generalPrompt = `
+**Tugas:**
+Buat sebuah file untuk komponen Jekyll berdasarkan deskripsi pengguna.
+
+**Instruksi Tambahan:**
+1.  **Analisis Permintaan:** Pahami apa yang ingin dibuat oleh pengguna (misalnya, header, layout postingan, footer).
+2.  **Tentukan Path File:** Berdasarkan konvensi Jekyll, tentukan folder dan nama file yang sesuai.
+    * Layouts ada di \`_layouts/\`.
+    * Komponen yang bisa digunakan kembali ada di \`_includes/\`.
+3.  **Hasilkan Kode Lengkap:** Sediakan kode secara utuh untuk file yang diminta.
+
+**Permintaan Pengguna:**
+${input.prompt}
+`;
+
+    const finalPrompt = isContextual 
+      ? `${basePrompt}\n${contextualPrompt}` 
+      : `${basePrompt}\n${generalPrompt}`;
+
+    // ======== AKHIR PEMBARUAN LOGIKA PROMPT ========
+
+    const { output } = await ai.generate({
+        prompt: finalPrompt, // Menggunakan prompt yang sudah dibangun secara dinamis
         output: {
             schema: JekyllComponentOutputSchema,
         },
     });
+
+    // Jika ini adalah permintaan kontekstual, pastikan nama file yang dikembalikan
+    // sesuai dengan file yang sedang diedit untuk konsistensi.
+    if (isContextual && output) {
+      return { ...output, filename: input.activeFilePath! };
+    }
+    
     return output!;
   }
 );
