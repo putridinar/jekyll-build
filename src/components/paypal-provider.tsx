@@ -20,7 +20,7 @@ export function PayPalProvider({ children }: { children: React.ReactNode }) {
     <PayPalScriptProvider
       options={{
         clientId: PAYPAL_CLIENT_ID,
-        "disable-funding": "paylater,venmo,card",
+        "disable-funding": "credit,card",
         disableFunding: 'paylater,venmo,card',
         components: 'buttons',
         "data-sdk-integration-source": "integrationbuilder_sc",

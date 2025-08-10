@@ -285,3 +285,42 @@ export async function checkAndRecordImageGeneration() {
         return { success: false, error: error.message };
     }
 }
+
+// Fungsi baru untuk update role user di Firestore setelah verifikasi license dari worker
+export async function updateUserRole(newRole: 'freeUser' | 'proUser', licenseId: string, payerId?: string, subscriptionId?: string) {
+    try {
+        const userId = await getUserId();
+        if (!adminDb) {
+            throw new Error('Firestore not initialized');
+        }
+
+        // Verifikasi licenseId via worker endpoint (integrasi dengan Cloudflare Worker)
+        const workerUrl = process.env.WORKER_URL || 'https://your-worker.workers.dev'; // Gunakan env untuk production
+        const res = await fetch(`${workerUrl}/check-license?id=${licenseId}`);
+        if (!res.ok) {
+            throw new Error('Failed to verify license from worker.');
+        }
+        const data = await res.json();
+        if (!data.valid) {
+            throw new Error('Invalid license. Cannot update role.');
+        }
+
+        // Update role di Firestore
+        const userRef = adminDb.collection('users').doc(userId);
+        const updateData: any = { role: newRole };
+        if (payerId) {
+            updateData.payerId = payerId; // Simpan payerId untuk query license nanti
+        }
+        if (subscriptionId) {
+            updateData.paypalSubscriptionId = subscriptionId; // Simpan subscriptionId jika ada (kompatibel dengan upgradeToPro)
+            updateData.upgradedAt = FieldValue.serverTimestamp();
+        }
+        await userRef.update(updateData);
+
+        console.log(`User ${userId} role updated to ${newRole}.`);
+        return { success: true, newRole };
+    } catch (error: any) {
+        console.error("Error updating user role:", error);
+        return { success: false, error: error.message };
+    }
+}

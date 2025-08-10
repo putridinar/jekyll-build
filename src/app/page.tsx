@@ -219,7 +219,7 @@ permalink: /
     <title>{{ page.title | escape }} | {{ site.title | escape }}</title>
     <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | normalize_whitespace | truncate: 160 | escape }}">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
+    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
     <link rel="canonical" href="{{ page.url | replace:'index.html','' | absolute_url }}">
   </head>
   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
@@ -1202,7 +1202,6 @@ function HomePageContent() {
           onPullRequest={handlePullRequest}
           isCreatingPr={isCreatingPr}
         />
-
         <AlertDialog
           open={!!deletingPath}
           onOpenChange={(open) => !open && setDeletingPath(null)}

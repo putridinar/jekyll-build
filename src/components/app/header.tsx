@@ -108,8 +108,8 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
                   <strong>Use AI</strong>:
                   <ul>
                     <li>Click the <strong>✨ (Sparkles)</strong> icon in the editor header to generate a Jekyll component from a text prompt.</li>
-                    <li>In the `assets/images` folder, use the <strong>✨ (Sparkles)</strong> icon to generate an image from a text prompt.</li>
                     <li>When creating a new post, use the "Generate with AI" button to create content from a title.</li>
+                    <li>At the "Create New Post" image, use the <strong>✨ (Sparkles)</strong> icon to generate an image from a title.</li>
                   </ul>
                 </li>
                 <li>

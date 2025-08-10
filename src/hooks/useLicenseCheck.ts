@@ -1,51 +1,58 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 
-const licenseId = process.env.NEXT_PUBLIC_CLIENT_ID
-/**
- * Hook kustom untuk memeriksa lisensi di footer.
- * Mengembalikan status lisensi: 'checking', 'valid', atau 'invalid'.
- */
-export function useLicenseCheck() {
-  const [status, setStatus] = useState<'checking' | 'valid' | 'invalid'>('checking');
+const useLicenseCheck = () => {
+  const [isLocked, setIsLocked] = useState(false);
+
   useEffect(() => {
-    const publisher = (licenseId || '').trim();
+    const licenseId = document.querySelector('meta[property="licenseId"]');
+    const licenseElement = document.getElementById('appFooter');
 
-    const observer = new MutationObserver((mutations, obs) => {
-      const licenseSpan = `${publisher}`;
+    if (!licenseId || !licenseElement) {
+      setIsLocked(true);
+      return;
+    }
 
-      if (licenseSpan) {
-        const spanText = (licenseSpan || '').trim();
+    const encodedLicense = licenseId.getAttribute('content');
+    if (!encodedLicense) {
+      setIsLocked(true);
+      return;
+    }
 
-        if (spanText === publisher) {
-          setStatus('valid');
-          obs.disconnect();
-          clearTimeout(timeoutId);
+    const decodedLicense = atob(encodedLicense);
+    const footerText = licenseElement.textContent;
+
+    if (decodedLicense !== footerText) {
+      setIsLocked(true);
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (
+          mutation.type === 'characterData' ||
+          mutation.type === 'childList'
+        ) {
+          if (licenseElement.textContent !== decodedLicense) {
+            setIsLocked(true);
+            observer.disconnect();
+          }
         }
-      }
+      });
     });
 
-    observer.observe(document.body, {
-      childList: true,
+    observer.observe(licenseElement, {
       subtree: true,
+      characterData: true,
+      childList: true,
     });
-
-    const timeoutId = setTimeout(() => {
-      // To prevent a race condition, we do one final check before declaring invalid.
-      const licenseSpan = document.querySelector('#app-footer span');
-      if (licenseSpan && (licenseSpan.textContent || '').trim() === publisher) {
-        setStatus('valid');
-      } else {
-        setStatus('invalid');
-      }
-      observer.disconnect();
-    }, 5000);
 
     return () => {
       observer.disconnect();
-      clearTimeout(timeoutId);
     };
   }, []);
-  return status;
-}
+
+  return isLocked;
+};
+
+export default useLicenseCheck;

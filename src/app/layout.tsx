@@ -1,3 +1,4 @@
+// layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
 import AppWrapper from "@/components/app/AppWrapper";
@@ -22,7 +23,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#000000"></meta>        
         <meta name="description" content="Jekyll Buildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
         <meta name="keywords" content="AI, artificial intelligence, image generation, video generation, deep learning, neural networks, machine learning, Jekyll, Buildr"></meta>
-        
+        <meta name="author" content="DaffaDev"></meta>
+        <meta name="publisher" content="DaffaDev"></meta>
+        <meta property="licenseId" content="SmVreWxsIEJ1aWxkciBieSBEYWZmYQ=="/>
         <meta property="twitter:card" content="summary_large_image"></meta>
         <meta property="twitter:site" content="@jekyllBuildr"></meta>
         <meta property="twitter:creator" content="@jekyllBuildr"></meta>
@@ -35,7 +38,7 @@ export default function RootLayout({
         <meta property="og:image" content="https://jekyll-buildr.vercel.app/og-image.png"></meta>
         <meta property="og:url" content="https://jekyll-buildr.vercel.app"></meta>
         <meta property="og:type" content="website"></meta>
-
+        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

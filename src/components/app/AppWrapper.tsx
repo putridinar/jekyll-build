@@ -1,22 +1,16 @@
 'use client';
 
-import { useLicenseCheck } from '@/hooks/useLicenseCheck';
-import LockScreen, { LoadingScreen } from './LockScreen';
+import React from 'react';
+import useLicenseCheck from '@/hooks/useLicenseCheck';
 
-export default function AppWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const licenseStatus = useLicenseCheck();
+const AppWrapper = ({ children }: { children: React.ReactNode }) => {
+  const isLocked = useLicenseCheck();
 
-  if (licenseStatus === 'checking') {
-    return <LoadingScreen />;
-  }
-  
-  if (licenseStatus === 'invalid') {
-    return <LockScreen />;
-  }
-  
-  return <>{children}</>;
-}
+  return (
+    <>
+        {children}
+    </>
+  );
+};
+
+export default AppWrapper;

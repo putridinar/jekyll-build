@@ -97,7 +97,7 @@ function AiImageGenerateButton({ form }: { form: UseFormReturn<PostFormValues> }
     return (
         <Button size="sm" variant="outline" type="button" onClick={handleGenerate} disabled={isGenerating}>
             {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            {isGenerating ? 'Generating...' : 'Generate with AI'}
+            {isGenerating ? 'Generating...' : 'Generate image with AI'}
         </Button>
     );
 }
@@ -362,7 +362,7 @@ export function PostEditor({
                     <FormControl>
                       <Textarea
                         placeholder="Write your post content here. Markdown is supported."
-                        className="min-h-[200px] md:min-h-[350px]"
+                        className="min-h-[250px] md:min-h-[300px] mb-4 md:mb-4"
                         {...field}
                       />
                     </FormControl>
