@@ -32,8 +32,8 @@ const ProFeatures = [
 ];
 
 const PAYPAL_PLAN_ID = process.env.PAYPAL_SANDBOX_ENABLED === 'true'
-  ? process.env.PAYPAL_SANDBOX_PLAN_ID
-  : process.env.PAYPAL_LIVE_PLAN_ID;
+  ? process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_PLAN_ID
+  : process.env.NEXT_PUBLIC_PAYPAL_LIVE_PLAN_ID;
 
 
 export function UpgradeModal({ isOpen, onOpenChange }: UpgradeModalProps) {
