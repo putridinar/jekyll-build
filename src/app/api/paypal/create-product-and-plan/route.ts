@@ -36,10 +36,10 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: 'dreamneuron proPlan',
+        name: 'jekyll-buildr proUser Plan',
         type: 'SERVICE',
         category: 'SOFTWARE',
-        description: 'Subscription to dreamneuron pro features',
+        description: 'Unlock advanced features',
       }),
     });
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         product_id: productId,
-        name: 'DreamNeuron Pro Plan',
+        name: 'Jekyll Buildr proUser Plan',
         description: 'Monthly subscription for pro features.',
         status: 'ACTIVE',
         billing_cycles: [
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         payment_preferences: {
           auto_bill_outstanding: true,
           setup_fee_failure_action: 'CONTINUE',
-          payment_failure_threshold: 3,
+          payment_failure_threshold: 1,
         },
       }),
     });
