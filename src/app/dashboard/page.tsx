@@ -3,11 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { getWorkspaces, setActiveWorkspace, createDefaultWorkspaceIfNeeded } from '@/actions/content'; // Kita akan membuat fungsi baru
+import { getWorkspaces, setActiveWorkspace, createDefaultWorkspaceIfNeeded, deleteWorkspace, createWorkspace } from '@/actions/content'; // Kita akan membuat fungsi baru
 import { LoadingScreen } from '@/components/app/LoadingScreen';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight } from 'lucide-react';
+import { PlusCircle, ArrowRight, Loader2, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 // Tipe data untuk workspace
 type Workspace = {
@@ -19,8 +24,59 @@ type Workspace = {
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // State for Create New Workspace dialog
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [repos, setRepos] = useState<string[]>([]);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [isFetchingRepos, setIsFetchingRepos] = useState(false);
+  const [isFetchingBranches, setIsFetchingBranches] = useState(false);
+
+  // Function to fetch repositories
+  const fetchRepos = async () => {
+      setIsFetchingRepos(true);
+      try {
+          const response = await fetch('/api/github/get-repos');
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to fetch repositories.');
+          setRepos(data.repositories || []);
+      } catch (error: any) {
+          toast({
+              title: 'Error Fetching Repos',
+              description: error.message,
+              variant: 'destructive'
+          });
+      } finally {
+          setIsFetchingRepos(false);
+      }
+  };
+
+  // Function to fetch branches for a given repository
+  const fetchBranches = async (repoFullName: string) => {
+      if (!repoFullName) return;
+      setIsFetchingBranches(true);
+      try {
+          const response = await fetch(`/api/github/get-branches?repoFullName=${repoFullName}`);
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to fetch branches');
+          setBranches(data.branches || []);
+      } catch (error: any) {
+          toast({
+              title: 'Error Fetching Branches',
+              description: error.message,
+              variant: 'destructive'
+          });
+      } finally {
+          setIsFetchingBranches(false);
+      }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -29,23 +85,71 @@ export default function DashboardPage() {
     }
     
     if (user) {
-      const fetchWorkspaces = async () => {
+      const fetchInitialData = async () => {
         setIsLoading(true);
-        // const userWorkspaces = await getWorkspaces(); // Panggil server action Anda
-        // setWorkspaces(userWorkspaces);
+        const userWorkspaces = await getWorkspaces(); // Panggil server action Anda
+        setWorkspaces(userWorkspaces);
+        await fetchRepos(); // Fetch repos when dashboard loads
         setIsLoading(false);
       };
-      fetchWorkspaces();
+      fetchInitialData();
     }
   }, [user, authLoading, router]);
 
   const handleWorkspaceClick = async (workspaceId: string) => {
-    // await setActiveWorkspace(workspaceId);
+    await setActiveWorkspace(workspaceId);
     router.push('/workspace'); // Arahkan ke editor
   };
   
-  const handleNewWorkspaceClick = () => {
-      router.push('/settings'); // Arahkan ke pengaturan untuk membuat workspace baru
+  // Fungsi untuk mengambil branch saat repo dipilih di dalam dialog
+  const onRepoSelectInDialog = async (repoFullName: string) => {
+      setSelectedRepo(repoFullName);
+      setSelectedBranch(''); // Reset pilihan branch
+      await fetchBranches(repoFullName);
+  };
+
+  const handleCreateWorkspace = async () => {
+      if (!selectedRepo || !selectedBranch) {
+          toast({ title: 'Error', description: 'Please select a repository and branch.', variant: 'destructive' });
+          return;
+      }
+      setIsCreating(true);
+      toast({ title: 'Creating Workspace...', description: 'Cloning repository, this might take a while.' });
+
+      const result = await createWorkspace(selectedRepo, selectedBranch);
+
+      if (result.success) {
+          toast({ title: 'Workspace Created!', description: 'You will be redirected to the editor.' });
+          setDialogOpen(false);
+          router.push('/workspace');
+      } else {
+          toast({ title: 'Error Workspace', description: 'Failed to Create Workspace', variant: 'destructive' });
+      }
+      setIsCreating(false);
+  };
+
+  const handleDeleteWorkspace = async (workspaceId: string) => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteWorkspace(workspaceId);
+      if (result.success) {
+        toast({
+          title: 'Workspace Deleted',
+          description: 'The workspace has been successfully removed.',
+        });
+        setWorkspaces(prev => prev.filter(ws => ws.id !== workspaceId));
+      } else {
+        throw new Error(result.error || 'Failed to delete workspace.');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error Deleting Workspace',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
   
   if (authLoading || isLoading) {
@@ -65,19 +169,94 @@ export default function DashboardPage() {
           {user?.role === 'proUser' && (
             <>
               {workspaces.map(ws => (
-                <Card key={ws.id} className="cursor-pointer p-4 hover:border-primary transition-all" onClick={() => handleWorkspaceClick(ws.id)}>
-                  <CardHeader>
-                    <CardTitle>{ws.name}</CardTitle>
-                    <CardDescription>{ws.githubRepo || 'Local Project'}</CardDescription>
+                <Card key={ws.id} className="relative cursor-pointer p-4 hover:border-primary transition-all">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>{ws.name}</CardTitle>
+                      <CardDescription>{ws.githubRepo || 'Local Project'}</CardDescription>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button className='absolute top-0 right-2' variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} disabled={isDeleting}>
+                          <Trash2 className="h-8 w-8 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your workspace 
+                            <span className="font-bold">{ws.name}</span> and remove its data from our servers.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteWorkspace(ws.id)} disabled={isDeleting}>
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent onClick={() => handleWorkspaceClick(ws.id)}>
                     <p className="text-sm text-muted-foreground">Click to open editor</p>
                   </CardContent>
                 </Card>
               ))}
-               <Card className="flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer" onClick={handleNewWorkspaceClick}>
-                  <PlusCircle className="h-10 w-10 text-muted-foreground mb-2" />
-                  <p className="font-semibold">Create New Workspace</p>
+               <Card className="flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                      <DialogTrigger asChild>
+                          <Button variant="ghost" className="flex flex-col items-center justify-center h-full w-full">
+                              <PlusCircle className="h-12 w-12 text-muted-foreground mb-2" />
+                              <p className="font-semibold">Create New Workspace</p>
+                          </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                          <DialogHeader>
+                              <DialogTitle>Create New Workspace</DialogTitle>
+                              <DialogDescription>
+                                  Select a GitHub repository to import as a new workspace.
+                              </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                              <div>
+                                  <Label htmlFor="repo-select">Repository</Label>
+                                  <Select onValueChange={onRepoSelectInDialog} value={selectedRepo}>
+                                      <SelectTrigger id="repo-select">
+                                          <SelectValue placeholder="Select a repository..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                          {repos.map(repo => <SelectItem key={repo} value={repo}>{repo}</SelectItem>)}
+                                      </SelectContent>
+                                  </Select>
+                              </div>
+                              <div>
+                                  <Label htmlFor="branch-select">Branch</Label>
+                                  <Select onValueChange={setSelectedBranch} value={selectedBranch} disabled={!selectedRepo || isFetchingBranches}>
+                                      <SelectTrigger id="branch-select">
+                                          <SelectValue placeholder="Select a branch..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                          {isFetchingBranches ? (
+                                              <div className="flex items-center justify-center p-2">
+                                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                              </div>
+                                          ) : (
+                                              branches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)
+                                          )}
+                                      </SelectContent>
+                                  </Select>
+                              </div>
+                          </div>
+                          <DialogFooter>
+                              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                              <Button onClick={handleCreateWorkspace} disabled={isCreating || !selectedRepo || !selectedBranch}>
+                                  {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                  {isCreating ? 'Creating...' : 'Create Workspace'}
+                              </Button>
+                          </DialogFooter>
+                      </DialogContent>
+                  </Dialog>
                </Card>
             </>
           )}

@@ -487,6 +487,26 @@ export async function deleteTemplateState() {
 }
 
 /**
+ * Menghapus workspace dari Firestore untuk pengguna saat ini.
+ */
+export async function deleteWorkspace(workspaceId: string) {
+    try {
+        const userId = await getUserId();
+        if (!adminDb) {
+            throw new Error('Firestore not initialized');
+        }
+        const workspaceRef = adminDb.collection('users').doc(userId).collection('workspaces').doc(workspaceId);
+        await workspaceRef.delete();
+        // Optionally revalidate a path if needed, but dashboard re-fetches
+        // revalidatePath('/dashboard'); 
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error deleting workspace:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Menerbitkan sekumpulan file template ke repositori GitHub pengguna secara berurutan.
  * Sekarang dengan kompresi gambar otomatis untuk file di bawah batas ukuran GitHub.
 **/

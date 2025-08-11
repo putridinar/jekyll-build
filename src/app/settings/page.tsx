@@ -7,23 +7,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {  saveSettings, getSettings, disconnectGithub, deleteTemplateState, createWorkspace } from '@/actions/content';
-import { Github, Loader2, Trash2, ExternalLink, Settings as SettingsIcon, Crown, PlusCircle } from 'lucide-react';
+import {  saveSettings, getSettings, disconnectGithub, deleteTemplateState } from '@/actions/content';
+import { Github, Loader2, Trash2, ExternalLink, Settings as SettingsIcon, Crown } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '@/components/app/header';
 import { AppFooter } from '@/components/app/footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -40,8 +31,6 @@ function SettingsPageContent() {
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const [workspaces, setWorkspaces] = React.useState([]);
     const [settings, setSettings] = React.useState<any>({});
     const [repos, setRepos] = React.useState<string[]>([]);
     const [branches, setBranches] = React.useState<string[]>([]);
@@ -51,10 +40,6 @@ function SettingsPageContent() {
     const [isFetchingBranches, setIsFetchingBranches] = React.useState(false);
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
     const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
-    const [isCreating, setIsCreating] = React.useState(false);
-    const [dialogOpen, setDialogOpen] = React.useState(false);
-    const [selectedRepo, setSelectedRepo] = React.useState('');
-    const [selectedBranch, setSelectedBranch] = React.useState('');
 
     // Hook useMemo dipindahkan ke atas untuk memastikan pemanggilan hook tanpa syarat
     const githubPagesUrl = React.useMemo(() => {
@@ -70,28 +55,6 @@ function SettingsPageContent() {
             router.push('/login');
         }
     }, [user, authLoading, router]);
-
-    React.useEffect(() => {
-        const status = searchParams.get('status');
-        const message = searchParams.get('message');
-        if (status && message) {
-            toast({
-                title: status.charAt(0).toUpperCase() + status.slice(1),
-                description: message,
-                variant: status === 'error' ? 'destructive' : 'default',
-            });
-            router.replace('/settings');
-        }
-    }, [searchParams, toast, router]);
-
-    React.useEffect(() => {
-        // Fungsi untuk mengambil daftar workspace dari Firestore
-        async function fetchWorkspaces() {
-            // const userWorkspaces = await getWorkspaces(); // Panggil server action Anda
-            // setWorkspaces(userWorkspaces);
-        }
-        fetchWorkspaces();
-    }, []);
 
     const fetchRepos = async () => {
         setIsFetchingRepos(true);
@@ -175,29 +138,12 @@ function SettingsPageContent() {
             return;
         }
 
-        toast({
-            title: 'Replacing Repository...',
-            description: 'Deleting old workspace and preparing the new one.',
-        });
-
         setSettings((prev: any) => ({ ...prev, githubRepo: repoFullName, githubBranch: '' }));
-        setBranches([]);
+        setBranches([]); // Clear branches when repo changes
         
         if (repoFullName) {
-            try {
-                // 1. Hapus state proyek/template lama dari Firestore
-                await deleteTemplateState();
-                
-                // 2. Arahkan pengguna kembali ke halaman utama.
-                router.push('/workspace');
-
-            } catch (error: any) {
-                toast({
-                    title: 'Failed to Replace Repository',
-                    description: `Could not delete old project: ${error.message}`,
-                    variant: 'destructive'
-                });
-            }
+            // Fetch branches for the newly selected repository
+            await fetchBranches(repoFullName);
         }
     };
 
@@ -210,6 +156,19 @@ function SettingsPageContent() {
             setIsSaving(true);
             try {
                 await saveSettings({ githubRepo: newSettings.githubRepo, githubBranch: branch });
+
+                // Add toast for workspace activation
+                toast({
+                    title: 'Workspace Update',
+                    description: 'Preparing your workspace with the selected repository.',
+                });
+
+                // 1. Hapus state proyek/template lama dari Firestore
+                await deleteTemplateState();
+                
+                // 2. Arahkan pengguna kembali ke halaman utama.
+                router.push('/workspace');
+
             } catch (error: any) {
                 toast({
                     title: 'Save Failed',
@@ -265,45 +224,19 @@ function SettingsPageContent() {
         }
     };
 
-    const handleCreateWorkspace = async () => {
-        if (!selectedRepo || !selectedBranch) {
-            toast({ title: 'Error', description: 'Please select a repository and branch.', variant: 'destructive' });
-            return;
-        }
-        setIsCreating(true);
-        toast({ title: 'Creating Workspace...', description: 'Cloning repository, this might take a while.' });
-
-        const result = await createWorkspace(selectedRepo, selectedBranch);
-
-        if (result.success) {
-            toast({ title: 'Workspace Created!', description: 'You will be redirected to the editor.' });
-            setDialogOpen(false);
-            router.push('/workspace');
-        } else {
-            toast({ title: 'Error Workspace', description: 'Failed to Create Workspace', variant: 'destructive' });
-        }
-        setIsCreating(false);
-    };
 
     // Fungsi untuk mengambil branch saat repo dipilih di dalam dialog
-    const onRepoSelectInDialog = async (repoFullName: string) => {
-        setSelectedRepo(repoFullName);
-        setSelectedBranch(''); // Reset pilihan branch
-        // Panggil fungsi fetchBranches yang sudah ada
-        await fetchBranches(repoFullName);
-    };
+    // const onRepoSelectInDialog = async (repoFullName: string) => {
+    //     setSelectedRepo(repoFullName);
+    //     setSelectedBranch(''); // Reset pilihan branch
+    //     // Panggil fungsi fetchBranches yang sudah ada
+    //     await fetchBranches(repoFullName);
+    // };
     
      if (authLoading || loading || !user) {
         return <LoadingScreen />;
     }
-    function handleCreateNewWorkspaceClick(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): void {
-        event.preventDefault();
-        toast({
-            title: 'Coming Soon',
-            description: 'Workspace creation is not yet implemented.',
-        });
-        // You can open a modal or redirect to a workspace creation page here in the future.
-    } return (
+ return (
         <TooltipProvider>
             <div className="flex min-h-screen flex-col">
                 <AppHeader />
@@ -362,70 +295,6 @@ function SettingsPageContent() {
                                     </Button>
                             </CardFooter>
                         )}
-                        </Card>
-                        {/* Kartu Manajemen Workspace */}
-                        <Card className="md:col-span-1">
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                {/* ... (Judul Kartu) ... */}
-
-                                {/* === TOMBOL PEMICU DIALOG === */}
-                                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button disabled={user?.role !== 'proUser'}>
-                                            <PlusCircle className="mr-2 h-4 w-4" />
-                                            Create New Workspace
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Create New Workspace</DialogTitle>
-                                            <DialogDescription>
-                                                Select a GitHub repository to import as a new workspace.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-4">
-                                            <div>
-                                                <Label htmlFor="repo-select">Repository</Label>
-                                                <Select onValueChange={onRepoSelectInDialog} value={selectedRepo}>
-                                                    <SelectTrigger id="repo-select">
-                                                        <SelectValue placeholder="Select a repository..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {repos.map(repo => <SelectItem key={repo} value={repo}>{repo}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="branch-select">Branch</Label>
-                                                <Select onValueChange={setSelectedBranch} value={selectedBranch} disabled={!selectedRepo || isFetchingBranches}>
-                                                    <SelectTrigger id="branch-select">
-                                                        <SelectValue placeholder="Select a branch..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {isFetchingBranches ? (
-                                                            <div className="flex items-center justify-center p-2">
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            </div>
-                                                        ) : (
-                                                            branches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)
-                                                        )}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-                                        <DialogFooter>
-                                            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                                            <Button onClick={handleCreateWorkspace} disabled={isCreating || !selectedRepo || !selectedBranch}>
-                                                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                {isCreating ? 'Creating...' : 'Create Workspace'}
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            </CardHeader>
-                            <CardContent>
-                                {/* ... (Daftar workspace yang ada) ... */}
-                            </CardContent>
                         </Card>
                         {/* Kartu Pengaturan GitHub */}
                         <Card className="md:col-span-1 flex flex-col">
