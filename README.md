@@ -12,10 +12,18 @@ Welcome to Jekyll Buildr, a modern mini-IDE web-based editor designed to streaml
 *   **🧾️ AI Content Generation**: AI can help you create content and images based on the title prompt you input.
 *   **🎨 AI Image Generation**: Generate unique images for your posts and assets by simply providing a text prompt.
 *   **🚀 Direct GitHub Integration**:
+    *   **Repository Cloning**: Users can import (clone) a public repository from GitHub to start a new project, where the application will automatically fetch all the text files.
     *   **Push to Branch**: Commit and push all your changes directly to your selected GitHub repository branch.
     *   **Create Pull Requests**: Create a new branch, commit your changes, and open a pull request for a safer, review-based workflow.
+    *   **Auto-save to Cloud**: Any changes to code or file structure will be automatically saved to Firestore every 2 seconds, ensuring no work is lost.
 *   **🔐 Secure Authentication**: User authentication is handled securely via GitHub OAuth through Firebase Authentication.
 *   **👑 Pro Tier Subscriptions**: Unlock advanced features by upgrading to a Pro account, managed via PayPal subscriptions.
+    - **Multi-Workspace Management**: Ability to create, save, and switch between unlimited projects/repositories.
+    - **AI Code Completion (Mini-Copilot)**: An AI assistant integrated into the editor to provide real-time code completion suggestions, powered by Gemini 2.5pro.
+    - **AI Fix Code**: Advanced feature to analyze and fix all problematic code files automatically with one click.
+    - **AI Component, Image & Post Generation**: The ability to generate Jekyll components or entire blog posts and image from just a short text description.
+
+### 🌐️ result buildr for [My Blog Site](https://daffadevhosting.github.io/blog/)
 
 ## 🛠️ Tech Stack
 

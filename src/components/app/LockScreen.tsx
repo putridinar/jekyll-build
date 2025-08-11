@@ -16,7 +16,7 @@ const LockScreen = () => {
       window.location.href = "https://daffadevhosting.github.io";
     }
 
-    // Cleanup
+    // Pembersihan
     return () => clearInterval(timer);
   }, [countdown]);
 

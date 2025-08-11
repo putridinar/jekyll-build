@@ -52,8 +52,8 @@ export function CodeEditor({
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const editorRef = React.useRef<any>(null);
 
-  // Fungsi untuk menangani ref dari komponen Editor
-  // dan mengambil textarea internalnya
+  // Function to handle ref from Editor component
+  // and get its internal textarea
   const setEditorRefs = (editorInstance: any) => {
     if (editorInstance?._input) {
       textareaRef.current = editorInstance._input;
@@ -70,19 +70,19 @@ export function CodeEditor({
     const cursorPosition = editorInput.selectionStart;
     const textBeforeCursor = editorInput.value.substring(0, cursorPosition);
     
-    // Hanya panggil AI jika ada cukup teks sebelum kursor
+    // Only call AI if there is enough text before the cursor
     if (textBeforeCursor && textBeforeCursor.trim().length > 3 && !suggestion) {
-     // console.log('✅ [DEBUG] Pemicu AI aktif! Mengirim konteks:', { context: textBeforeCursor });
+     // console.log('✅ [DEBUG] AI trigger active! Sending context:', { context: textBeforeCursor });
       
       const completion = await generateCodeCompletion(textBeforeCursor, language);
       
-     // console.log('✅ [DEBUG] AI merespons dengan:', `"${completion}"`);
+     // console.log('✅ [DEBUG] AI responds with:', `"${completion}"`);
 
       // Cek lagi apakah kursor masih di posisi yang sama
       if (editorRef.current?._input.selectionStart === cursorPosition) {
         setSuggestion(completion);
       } else {
-        // console.log('⚠️ [DEBUG] Kursor bergerak, saran dibatalkan.');
+        // console.log('⚠️ [DEBUG] Cursor moved, suggestion cancelled.');
       }
     }
   }, 700);
@@ -90,8 +90,8 @@ export function CodeEditor({
   const handleValueChange = (newCode: string) => {
     setSuggestion('');
     setContent(newCode);
-    // Kita tidak lagi meneruskan `newCode` ke fetchSuggestion
-    // karena ia akan membaca langsung dari editor ref
+    // We no longer pass `newCode` to fetchSuggestion
+    // because it will read directly from the editor ref
     fetchSuggestion();
   };
 
@@ -109,7 +109,7 @@ export function CodeEditor({
       setContent(newContent);
       setSuggestion('');
       
-      // Pindahkan kursor ke akhir teks yang disisipkan
+      // Move cursor to the end of the inserted text
       setTimeout(() => {
         if (editorRef.current?._input) {
           const newCursorPos = cursorPosition + suggestion.length;

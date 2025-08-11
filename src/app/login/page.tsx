@@ -17,7 +17,7 @@ export default function LoginPage() {
 
     const handleLoginSuccess = async (user: User) => {
         try {
-            // Inisialisasi pengguna di Firestore jika mereka tidak ada
+            // Initialize user in Firestore if they don't exist
             await initializeUser({
                 uid: user.uid,
                 email: user.email,
@@ -25,19 +25,19 @@ export default function LoginPage() {
                 photoURL: user.photoURL,
             });
 
-            // Dapatkan token ID dan buat cookie sesi
+            // Get ID token and create session cookie
             const idToken = await user.getIdToken(true);
             const sessionResult = await createSessionCookie(idToken);
 
             if (sessionResult.success) {
-                // Arahkan ke halaman utama setelah pembuatan sesi berhasil
-                router.push('/');
+                // Redirect to the main page after successful session creation
+                router.push('/dashboard');
             } else {
-                setError(sessionResult.error || 'Gagal membuat sesi.');
+                setError(sessionResult.error || 'Failed to create session.');
                 setLoading(false);
             }
         } catch (err: any) {
-            setError(err.message || 'Terjadi kesalahan tak terduga selama pengaturan login.');
+            setError(err.message || 'An unexpected error occurred during login setup.');
             setLoading(false);
         }
     };
@@ -48,15 +48,15 @@ export default function LoginPage() {
         const provider = new GithubAuthProvider();
         try {
             const result = await signInWithPopup(auth, provider);
-            // Pendengar onAuthStateChanged di AuthProvider akan menangani pengalihan.
-            // Tapi kami masih memanggil penangan keberhasilan kami untuk memastikan pengguna diinisialisasi dan sesi dibuat.
+            // The onAuthStateChanged listener in AuthProvider will handle the redirect.
+            // But we still call our success handler to ensure the user is initialized and a session is created.
             await handleLoginSuccess(result.user);
         } catch (error: any)
 {
-            // Hindari menampilkan kesalahan generik "pengguna menutup popup"
+            // Avoid showing the generic "user closed popup" error
             if (error.code !== 'auth/popup-closed-by-user') {
-                 console.error("Kesalahan Masuk GitHub:", error);
-                setError(error.message || 'Gagal masuk dengan GitHub.');
+                 console.error("GitHub Sign-In Error:", error);
+                setError(error.message || 'Failed to sign in with GitHub.');
             }
             setLoading(false);
         }

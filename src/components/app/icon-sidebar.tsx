@@ -30,11 +30,11 @@ export function IconSidebar({ user, className }: IconSidebarProps) {
 
   const navItems = React.useMemo(() => [
     {
-      href: '/',
+      href: '/workspace',
       icon: Files,
       label: 'Editor',
-      isActive: activePath === '/',
-      action: () => router.push('/'),
+      isActive: activePath === '/workspace',
+      action: () => router.push('/workspace'),
     },
     {
       href: '/settings',
