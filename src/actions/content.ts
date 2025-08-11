@@ -136,7 +136,7 @@ export async function publishContent(contentType: string, data: any) {
                 installationId: settings.installationId,
                 path: imagePath,
                 content: compressedImageBase64,
-                commitMessage: `feat: add image for ${data.slug}`,
+                commitMessage: `buildr: add image for ${data.slug}`,
                 branch: settings.githubBranch,
                 isBase64: true
             });
@@ -146,7 +146,7 @@ export async function publishContent(contentType: string, data: any) {
         
         const date = new Date().toISOString().split('T')[0];
         const filePath = `_posts/${date}-${data.slug}.md`;
-        const commitMessage = `feat: publish post "${data.title}"`;
+        const commitMessage = `buildr: publish post "${data.title}"`;
 
         const frontmatter = `---
 title: "${data.title}"
@@ -567,7 +567,7 @@ export async function createPullRequestAction(files: any[], prDetails: { title: 
         
         // 1. Buat nama cabang yang unik
         const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
-        const newBranchName = `jekyll-flow-update-${timestamp}`;
+        const newBranchName = `jekyll-buildr-update-${timestamp}`;
 
         // 2. Dapatkan SHA komit terbaru dari cabang dasar
         const baseSha = await getBranchSha(githubRepo, githubBranch, installationId);
@@ -606,7 +606,7 @@ export async function createPullRequestAction(files: any[], prDetails: { title: 
                 installationId: installationId,
                 path: file.path,
                 content: contentToCommit,
-                commitMessage: `feat: update ${file.name}`,
+                commitMessage: `buildr: update ${file.name}`,
                 branch: newBranchName,
                 isBase64,
             });

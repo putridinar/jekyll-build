@@ -21,6 +21,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
         <meta name="theme-color" content="#000000"></meta>        
+        <link rel="manifest" href="/manifest.json" />        
         <meta name="description" content="Jekyll Buildr is a powerful IDE webapp tool that helps you create stunning Jekyll pages with ease."></meta>
         <meta name="keywords" content="AI, artificial intelligence, mini-IDE, image generation, video generation, deep learning, neural networks, machine learning, Jekyll, jekyll-IDE, Buildr"></meta>
         <meta name="author" content="DaffaDev"></meta>
