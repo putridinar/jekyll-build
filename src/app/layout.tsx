@@ -21,16 +21,16 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
         <meta name="theme-color" content="#000000"></meta>        
-        <meta name="description" content="Jekyll Buildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
-        <meta name="keywords" content="AI, artificial intelligence, image generation, video generation, deep learning, neural networks, machine learning, Jekyll, Buildr"></meta>
+        <meta name="description" content="Jekyll Buildr is a powerful IDE webapp tool that helps you create stunning Jekyll pages with ease."></meta>
+        <meta name="keywords" content="AI, artificial intelligence, mini-IDE, image generation, video generation, deep learning, neural networks, machine learning, Jekyll, jekyll-IDE, Buildr"></meta>
         <meta name="author" content="DaffaDev"></meta>
-        <meta name="publisher" content="DaffaDev"></meta>
+        <meta name="publisher" content="Vercel"></meta>
         <meta property="licenseId" content="SmVreWxsIEJ1aWxkciBieSBEYWZmYQ=="/>
         <meta property="twitter:card" content="summary_large_image"></meta>
         <meta property="twitter:site" content="@jekyllBuildr"></meta>
         <meta property="twitter:creator" content="@jekyllBuildr"></meta>
         <meta property="twitter:title" content="jekyllBuildr"></meta>
-        <meta property="twitter:description" content="jekyllBuildr is a powerful webapp tool that helps you create stunning Jekyll pages with ease."></meta>
+        <meta property="twitter:description" content="Jekyll Buildr is a powerful IDE webapp tool that helps you create stunning Jekyll pages with ease."></meta>
         <meta property="twitter:image" content="https://jekyll-buildr.vercel.app/og-image.png"></meta>
 
         <meta property="og:title" content="Jekyll Buildr"></meta>

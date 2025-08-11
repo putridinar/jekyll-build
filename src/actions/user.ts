@@ -324,3 +324,33 @@ export async function updateUserRole(newRole: 'freeUser' | 'proUser', licenseId:
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Memeriksa apakah pengguna saat ini memiliki izin untuk menggunakan fitur Code Completion.
+ * Hanya 'proUser' yang diizinkan.
+ */
+export async function checkCodeCompletionPermission() {
+    try {
+        const userId = await getUserId();
+        if (!adminDb) throw new Error('Firestore not initialized');
+
+        const userRef = adminDb.collection('users').doc(userId);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+
+        if (!userData) {
+            throw new Error("User data not found.");
+        }
+
+        // Hanya izinkan jika perannya adalah 'proUser'
+        if (userData.role === 'proUser') {
+            return { success: true };
+        }
+
+        return { success: false, error: 'Code completion is a Pro feature.' };
+
+    } catch (error: any) {
+        console.error("Error in checkCodeCompletionPermission:", error);
+        return { success: false, error: error.message };
+    }
+}

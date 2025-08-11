@@ -1193,6 +1193,7 @@ function HomePageContent() {
               content={content}
               setContent={handleContentChange}
               isSaving={isSaving}
+              user={user}
             />
           </section>
         </main>

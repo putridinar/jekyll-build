@@ -27,8 +27,8 @@ const ProFeatures = [
     'Unlimited file creation',
     'AI-powered component generation',
     'AI-powered image generation',
-    'Publish to private repositories',
-    'Priority support',
+    'Mini-IDE with code completion',
+    'AI fixes for code errors',
 ];
 
 const PAYPAL_PLAN_ID = process.env.PAYPAL_SANDBOX_ENABLED === 'true'
