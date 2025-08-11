@@ -20,10 +20,11 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {Button} from '@/components/ui/button';
-import {PanelLeft, Sparkles, Plus, FolderPlus} from 'lucide-react';
+import {PanelLeft, Sparkles, Plus, FolderPlus, Wrench} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {AppFooter} from '@/components/app/footer';
 import {generateJekyllComponent} from '@/ai/flows/jekyll-generator-flow';
+import { fixJekyllCode } from '@/ai/flows/code-fixer-flow';
 import {useAuth} from '@/hooks/use-auth';
 import {IconSidebar} from '@/components/app/icon-sidebar';
 import {
@@ -54,6 +55,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { UpgradeModal } from '@/components/upgrade-modal';
 import {Textarea} from '@/components/ui/textarea';
 import { checkAndRecordComponentGeneration } from '@/actions/user';
 import { PostEditor } from '@/components/app/post-editor';
@@ -323,7 +325,6 @@ function HomePageContent() {
   const [activeFile, setActiveFile] = React.useState<string>('index.html');
   const [fileContents, setFileContents] =
     React.useState<{[key: string]: string}>(initialFileContents);
-
   const [renamingPath, setRenamingPath] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const isMobile = useIsMobile();
@@ -331,6 +332,15 @@ function HomePageContent() {
   const {user, loading} = useAuth();
   const router = useRouter();
   const [isPostEditorOpen, setIsPostEditorOpen] = React.useState(false);
+  const [isFixing, setIsFixing] = React.useState(false);
+  const [isPublishing, setIsPublishing] = React.useState(false);
+  const [isCreatingPr, setIsCreatingPr] = React.useState(false);
+  const [deletingPath, setDeletingPath] = React.useState<string | null>(null);
+  const [generateDialogOpen, setGenerateDialogOpen] = React.useState(false);
+  const [prompt, setPrompt] = React.useState('');
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
 
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
     new Set([
@@ -382,13 +392,53 @@ function HomePageContent() {
     loadState();
   }, [user, toast]);
 
-  const [isPublishing, setIsPublishing] = React.useState(false);
-  const [isCreatingPr, setIsCreatingPr] = React.useState(false);
-  const [deletingPath, setDeletingPath] = React.useState<string | null>(null);
-  const [generateDialogOpen, setGenerateDialogOpen] = React.useState(false);
-  const [prompt, setPrompt] = React.useState('');
-  const [isGenerating, setIsGenerating] = React.useState(false);
-  const [isSaving, setIsSaving] = React.useState(false);
+  const handleFixCode = async () => {
+    if (!content) return;
+
+    setIsFixing(true);
+    toast({ title: 'Menganalisis & Memperbaiki Kode...', description: 'AI sedang bekerja, mohon tunggu.' });
+
+    try {
+      const language = getLanguage(activeFile); // Kita butuh fungsi getLanguage di sini
+      const fixedCode = await fixJekyllCode(content, language, activeFile);
+      
+      handleContentChange(fixedCode); // Gunakan fungsi yang sudah ada untuk update konten
+      
+      toast({ title: 'Kode Berhasil Diperbaiki!', description: 'Perubahan sudah diterapkan di editor.' });
+    } catch (error: any) {
+      toast({ title: 'Gagal Memperbaiki Kode', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
+  const onFixCodeClick = () => {
+    if (user?.role === 'proUser') {
+      // Jika user pro, jalankan fungsi perbaikan
+      handleFixCode();
+    } else {
+      // Jika free user, tampilkan toast dan buka modal
+      toast({
+        title: 'Fitur Pro 👑',
+        description: 'Upgrade ke Pro untuk menggunakan fitur perbaikan kode otomatis!',
+      });
+      setUpgradeModalOpen(true);
+    }
+  };
+
+  function getLanguage(filename: string) {
+    if (!filename) return 'markup';
+    const extension = filename.split('.').pop() || '';
+    switch (extension) {
+        case 'html': case 'liquid': return 'markup';
+        case 'css': return 'css';
+        case 'js': return 'javascript';
+        case 'yml': case 'yaml': return 'yaml';
+        case 'md': case 'markdown': return 'markdown';
+        case 'rb': return 'ruby';
+        default: return 'markup';
+    }
+  }
 
   const debouncedSave = useDebouncedCallback(async (stateToSave) => {
     setIsSaving(true);
@@ -1077,7 +1127,8 @@ function HomePageContent() {
   return (
     <TooltipProvider>
       <div className="flex h-screen w-full flex-col">
-        <AppHeader onNewPost={() => setIsPostEditorOpen(true)}>
+        <AppHeader onNewPost={() => setIsPostEditorOpen(true)}
+            onUpgradeClick={() => setUpgradeModalOpen(true)}>
           {isMobile && (
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
@@ -1136,6 +1187,16 @@ function HomePageContent() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>New Root Folder</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={onFixCodeClick} disabled={isFixing}>
+                      {isFixing ? <Sparkles className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+                    </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Fix Code with AI</p>
                     </TooltipContent>
                   </Tooltip>
                   <Dialog
@@ -1237,6 +1298,7 @@ function HomePageContent() {
             onOpenChange={setIsPostEditorOpen}
             onPostPublished={handlePostPublished}
         />
+        <UpgradeModal isOpen={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
       </div>
     </TooltipProvider>
   );

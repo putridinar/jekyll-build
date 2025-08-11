@@ -2,3 +2,4 @@
 import './flows/jekyll-generator-flow';
 import './flows/post-generator-flow';
 import './flows/code-completion-flow';
+import './flows/code-fixer-flow';

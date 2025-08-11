@@ -32,12 +32,12 @@ import * as React from 'react';
 type AppHeaderProps = {
   children?: React.ReactNode;
   onNewPost?: () => void;
+  onUpgradeClick?: () => void;
 };
 
-export function AppHeader({ children, onNewPost }: AppHeaderProps) {
+export function AppHeader({ children, onNewPost, onUpgradeClick }: AppHeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
 
 
   const handleLogout = async () => {
@@ -149,8 +149,8 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
-                {user.role === 'freeUser' && (
-                   <DropdownMenuItem onClick={() => setUpgradeModalOpen(true)}>
+                {user.role === 'freeUser' && onUpgradeClick && (
+                   <DropdownMenuItem onClick={onUpgradeClick}>
                     <Crown className="mr-2 h-4 w-4" />
                     <span>Upgrade to Pro</span>
                   </DropdownMenuItem>
@@ -165,7 +165,6 @@ export function AppHeader({ children, onNewPost }: AppHeaderProps) {
           </DropdownMenu>
         )}
       </div>
-      <UpgradeModal isOpen={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
     </header>
   );
 }

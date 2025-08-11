@@ -1,12 +1,15 @@
-# Jekyll Buildr v.2.1
+# Jekyll Buildr v.2.1 [with AI Generation]
 
-Welcome to Jekyll Buildr, a modern, web-based editor designed to streamline your Jekyll workflow. Built with a powerful tech stack, this application provides an intuitive interface to create, edit, and manage your Jekyll projects, complete with AI-powered features and direct integration with GitHub.
+Welcome to Jekyll Buildr, a modern mini-IDE web-based editor designed to streamline your Jekyll workflow. Built with a powerful tech stack, this application provides an intuitive interface to create, edit, and manage your Jekyll projects, complete with AI-powered features and direct integration with GitHub.
 
 ## ✨ Key Features
 
-*   **💻 In-Browser Code Editor**: A full-featured code editor with syntax highlighting for various file types (`.html`, `.md`, `.yml`, `.css`, etc.), right in your browser.
+*   **💻 In-Browser Code Editor**: A full-featured mini-IDE / code editor with syntax highlighting for various file types (`.html`, `.md`, `.yml`, `.css`, etc.), right in your browser.
 *   **🗂️ File Management**: A familiar file explorer to navigate, create, rename, and delete files and folders within your Jekyll project structure.
 *   **🤖 AI Component Generation**: Describe a component you need—like a navigation bar or a post layout—and let the AI generate the Jekyll-compliant HTML and Liquid code for you.
+*   **🧑‍💻️ AI Code Completion**: Mini-Copilot that can provide code suggestions, 'click the tab' to apply the AI code suggestions.
+*   **🛠️ AI Code fixes**: AI can fix error code by blocking the error code and clicking the 'Wrench' button and let AI fix your code.
+*   **🧾️ AI Content Generation**: AI can help you create content and images based on the title prompt you input.
 *   **🎨 AI Image Generation**: Generate unique images for your posts and assets by simply providing a text prompt.
 *   **🚀 Direct GitHub Integration**:
     *   **Push to Branch**: Commit and push all your changes directly to your selected GitHub repository branch.
