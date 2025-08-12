@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { saveSettings, getSettings, disconnectGithub } from '@/actions/content';
+import {  saveSettings, getSettings, disconnectGithub, deleteTemplateState } from '@/actions/content';
 import { Github, Loader2, Trash2, ExternalLink, Settings as SettingsIcon, Crown } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '@/components/app/header';
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { UpgradeModal } from '@/components/upgrade-modal';
+import { LoadingScreen } from '@/components/app/LoadingScreen';
 
 
 const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
@@ -30,8 +31,6 @@ function SettingsPageContent() {
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
-    const searchParams = useSearchParams();
-
     const [settings, setSettings] = React.useState<any>({});
     const [repos, setRepos] = React.useState<string[]>([]);
     const [branches, setBranches] = React.useState<string[]>([]);
@@ -42,7 +41,7 @@ function SettingsPageContent() {
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
     const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
 
-    // Moved useMemo hook to the top to ensure unconditional hook calls
+    // Hook useMemo dipindahkan ke atas untuk memastikan pemanggilan hook tanpa syarat
     const githubPagesUrl = React.useMemo(() => {
         if (settings.githubRepo) {
             const [owner, repoName] = settings.githubRepo.split('/');
@@ -56,19 +55,6 @@ function SettingsPageContent() {
             router.push('/login');
         }
     }, [user, authLoading, router]);
-
-    React.useEffect(() => {
-        const status = searchParams.get('status');
-        const message = searchParams.get('message');
-        if (status && message) {
-            toast({
-                title: status.charAt(0).toUpperCase() + status.slice(1),
-                description: message,
-                variant: status === 'error' ? 'destructive' : 'default',
-            });
-            router.replace('/settings');
-        }
-    }, [searchParams, toast, router]);
 
     const fetchRepos = async () => {
         setIsFetchingRepos(true);
@@ -144,33 +130,45 @@ function SettingsPageContent() {
         }
     }, [user, fetchInitialData]);
 
+
+    // === PERBARUAN FUNGSI ===
     const handleRepoChange = async (repoFullName: string) => {
+        // Hentikan jika repo yang dipilih sama dengan yang sekarang untuk menghindari reset.
+        if (settings.githubRepo === repoFullName) {
+            return;
+        }
+
         setSettings((prev: any) => ({ ...prev, githubRepo: repoFullName, githubBranch: '' }));
-        setBranches([]);
+        setBranches([]); // Clear branches when repo changes
+        
         if (repoFullName) {
-           await fetchBranches(repoFullName);
+            // Fetch branches for the newly selected repository
+            await fetchBranches(repoFullName);
         }
     };
 
     const handleBranchChange = async (branch: string) => {
-        const newSettings = { ...settings, githubRepo: settings.githubRepo, githubBranch: branch };
+        const newSettings = { ...settings, githubBranch: branch };
         setSettings(newSettings);
 
+        // Hanya simpan jika repo dan branch sudah dipilih
         if (newSettings.githubRepo && branch) {
             setIsSaving(true);
             try {
-                const result = await saveSettings({
-                    githubRepo: newSettings.githubRepo,
-                    githubBranch: branch
+                await saveSettings({ githubRepo: newSettings.githubRepo, githubBranch: branch });
+
+                // Add toast for workspace activation
+                toast({
+                    title: 'Workspace Update',
+                    description: 'Preparing your workspace with the selected repository.',
                 });
-                if (result.success) {
-                    toast({
-                        title: 'Settings Saved!',
-                        description: 'Pengaturan berhasil disimpan!',
-                    });
-                } else {
-                    throw new Error(result.error || 'Gagal menyimpan pengaturan.');
-                }
+
+                // 1. Hapus state proyek/template lama dari Firestore
+                await deleteTemplateState();
+                
+                // 2. Arahkan pengguna kembali ke halaman utama.
+                router.push('/workspace');
+
             } catch (error: any) {
                 toast({
                     title: 'Save Failed',
@@ -183,7 +181,6 @@ function SettingsPageContent() {
         }
     };
 
-
     const handleReconnect = () => {
         const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME;
         if (appName) {
@@ -191,7 +188,7 @@ function SettingsPageContent() {
         } else {
             toast({
                 title: 'Configuration Error',
-                description: "Konfigurasi nama aplikasi GitHub tidak ditemukan.",
+                description: "GitHub application name configuration not found.",
                 variant: 'destructive'
             });
         }
@@ -205,7 +202,7 @@ function SettingsPageContent() {
             if (result.success) {
                 toast({
                     title: 'GitHub Disconnected',
-                    description: 'Mengarahkan Anda untuk menghapus instalasi aplikasi...',
+                    description: 'Redirecting you to uninstall the application...',
                 });
                 setSettings({});
                 setRepos([]);
@@ -214,7 +211,7 @@ function SettingsPageContent() {
                     window.location.href = `https://github.com/settings/installations/${currentInstallationId}`;
                 }
             } else {
-                throw new Error(result.error || 'Gagal memutuskan sambungan.');
+                throw new Error(result.error || 'Failed to disconnect.');
             }
         } catch (error: any) {
             toast({
@@ -227,21 +224,24 @@ function SettingsPageContent() {
         }
     };
 
+    // Fungsi untuk mengambil branch saat repo dipilih di dalam dialog
+    // const onRepoSelectInDialog = async (repoFullName: string) => {
+    //     setSelectedRepo(repoFullName);
+    //     setSelectedBranch(''); // Reset pilihan branch
+    //     // Panggil fungsi fetchBranches yang sudah ada
+    //     await fetchBranches(repoFullName);
+    // };
+    
      if (authLoading || loading || !user) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin" />
-            </div>
-        );
+        return <LoadingScreen />;
     }
-
-    return (
+ return (
         <TooltipProvider>
             <div className="flex min-h-screen flex-col">
                 <AppHeader />
                 <main className="flex-1 bg-muted/20 p-4 sm:p-6 md:p-8">
                     <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
-                        {/* Profile Card */}
+                        {/* Kartu Profil */}
                         <Card className="md:col-span-1">
                             <CardHeader className="flex flex-row justify-between items-center gap-4">
                                 <div className='flex flex-col space-y-3'>
@@ -295,8 +295,7 @@ function SettingsPageContent() {
                             </CardFooter>
                         )}
                         </Card>
-
-                        {/* GitHub Settings Card */}
+                        {/* Kartu Pengaturan GitHub */}
                         <Card className="md:col-span-2 flex flex-col">
                             <CardHeader>
                                 <div className="flex justify-between items-center gap-2">
@@ -306,7 +305,7 @@ function SettingsPageContent() {
                                     </div>
                                     {isSaving && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                                 </div>
-                                <CardDescription>Pilih repositori dan cabang untuk mempublikasikan situs Jekyll Anda. Pengaturan akan disimpan secara otomatis setelah Anda memilih cabang.</CardDescription>
+                                <CardDescription>Select the repository and branch to publish your Jekyll site. Settings will be saved automatically after you select a branch.</CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow">
                                 {!settings.installationId ? (
@@ -371,12 +370,11 @@ function SettingsPageContent() {
                                  <CardFooter className="border-t pt-6 mt-auto">
                                         <div className="flex justify-between items-center w-full p-2">
                                             <Button type='button' variant="outline" size="sm" onClick={handleReconnect}>
-                                                Change Permissions
+                                                Change
                                             </Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="destructive" className="w-fit" size="sm" disabled={isDisconnecting}>
-                                                <Trash2 className="mr-2 h-4 w-4" /> 
                                                 {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
                                             </Button>
                                         </AlertDialogTrigger>
@@ -400,6 +398,8 @@ function SettingsPageContent() {
                             )}
                         </Card>
                     </div>
+                    <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
+                    </div>
                 </main>
                 <AppFooter isPublishing={false} isCreatingPr={false} />
                 <UpgradeModal isOpen={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
@@ -410,7 +410,7 @@ function SettingsPageContent() {
 
 export default function SettingsPage() {
     return (
-        <React.Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin" /></div>}>
+        <React.Suspense fallback={<div className="flex h-screen w-full items-center justify-center"> <LoadingScreen />;</div>}>
             <SettingsPageContent />
         </React.Suspense>
     )

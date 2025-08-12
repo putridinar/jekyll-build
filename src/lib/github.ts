@@ -266,3 +266,22 @@ export async function getRepoBranches({ repoFullName, installationId }: GetRepoB
     if (!branchesData) return []; // Jika tidak ada cabang sama sekali
     return branchesData.map((branch: any) => branch.name);
 }
+
+// --- Fungsi Baru untuk Mengambil Struktur Pohon File ---
+export async function getRepoTree(repoFullName: string, branch: string, installationId: string): Promise<any[]> {
+    const branchSha = await getBranchSha(repoFullName, branch, installationId);
+    const data = await githubApiRequest(
+        `/repos/${repoFullName}/git/trees/${branchSha}?recursive=1`, 
+        installationId
+    );
+    return data.tree; // Ini mengembalikan daftar semua file dan folder
+}
+
+// --- Fungsi Baru untuk Mengambil Konten File (Blob) ---
+export async function getFileContent(repoFullName: string, fileSha: string, installationId: string): Promise<{ content: string; encoding: string; }> {
+    const data = await githubApiRequest(
+        `/repos/${repoFullName}/git/blobs/${fileSha}`, 
+        installationId
+    );
+    return { content: data.content, encoding: data.encoding };
+}

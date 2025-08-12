@@ -56,8 +56,7 @@ export function AppFooter({ onPublish, onPullRequest, isPublishing = false, isCr
   return (
     <>
     <footer className="flex flex-col-reverse w-full gap-2 md:flex-row h-18 md:h-[65px] shrink-0 items-center justify-between border-t py-3 px-2 lg:px-6">
-            {isLocked && <LockScreen />}
-          <span id="appFooter" style={{ display: isLocked ? 'none' : 'block', width: '100%' }} className='text-sm md:text-md text-gray-900 dark:text-orange-400 w-full'>Jekyll Buildr by Daffa</span>
+      <span id="appFooter" style={{ display: isLocked ? 'none' : 'block', width: '100%' }} className='text-sm md:text-md text-gray-900 dark:text-orange-400 w-full'>Jekyll Buildr by Daffa</span>
       <div className='flex justify-between items-center w-full md:justify-end md:gap-4'>
       {onPullRequest && (
         <Dialog open={prDialogOpen} onOpenChange={setPrDialogOpen}>
@@ -126,6 +125,7 @@ export function AppFooter({ onPublish, onPullRequest, isPublishing = false, isCr
       )}
       </div>
     </footer>
+    {isLocked && <LockScreen />}
     </>
   );
 }

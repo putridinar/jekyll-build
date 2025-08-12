@@ -1,9 +1,9 @@
 'use server';
 /**
- * @fileOverview A Jekyll component generator AI Buildr.
+ * @fileOverview A Jekyll code fixer flow AI Buildr.
  *
- * - generateJekyllComponent - A function that handles the Jekyll component generation process.
- * - JekyllComponentOutput - The return type for the generateJekyllComponent function.
+ * - fixJekyllCode - A function that handles the Jekyll code fixed process.
+ * - CodeFixerOutput - The return type for the fixJekyllCode function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -52,16 +52,16 @@ const codeFixerFlow = ai.defineFlow(
     const { output } = await ai.generate({
         prompt: `
 **Peran:**
-Anda adalah seorang Senior Web Developer dan ahli Jekyll. Anda sangat teliti dan jago dalam melakukan code review untuk menemukan dan memperbaiki kesalahan.
+Anda adalah seorang Senior Web Developer dan ahli JavaScript, HTML, CSS, dan Liquid (Jekyll). Anda sangat teliti dan jago dalam melakukan code review untuk menemukan dan memperbaiki kesalahan.
 
 **Tugas:**
 Analisis kode dari file bernama \`${input.fileName}\` berikut ini. Temukan semua potensi masalah dan kembalikan versi kode yang sudah diperbaiki secara penuh.
 
 **Jenis Masalah yang Harus Dicari:**
-1.  **Error Sintaks:** Kesalahan HTML yang tidak valid (tag tidak ditutup), error Liquid, atau kesalahan ketik pada CSS.
-2.  **Best Practices:** Perbaiki struktur kode agar lebih mudah dibaca. Gunakan kelas Tailwind CSS secara efisien.
-3.  **Logika Rusak:** Cari potensi masalah pada logika Liquid (misalnya, perulangan yang salah).
-4.  **Konsistensi:** Pastikan gaya penulisan kode konsisten.
+1.  **Error Sintaks:** Kesalahan sintaks pada bahasa yang diberikan (misalnya, tag HTML tidak ditutup, error Liquid, kesalahan ketik CSS, atau error JavaScript).
+2.  **Best Practices:** Perbaiki struktur kode agar lebih mudah dibaca dan ikuti praktik terbaik untuk bahasa tersebut (misalnya, penggunaan Tailwind CSS yang efisien, pola JavaScript yang bersih).
+3.  **Logika Rusak:** Cari potensi masalah pada logika (misalnya, perulangan yang salah di Liquid, kesalahan logika di JavaScript).
+4.  **Konsistensi:** Pastikan gaya penulisan kode konsisten sesuai dengan standar bahasa.
 
 **Instruksi Penting:**
 - **KEMBALIKAN KODE LENGKAP:** Jawaban Anda harus berisi **seluruh isi file** yang sudah diperbaiki, dari baris pertama hingga terakhir.
