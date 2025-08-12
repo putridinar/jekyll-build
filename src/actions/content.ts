@@ -777,6 +777,7 @@ export async function getWorkspaces() {
         id: doc.id,
         name: doc.data().name || doc.data().githubRepo, // Ambil nama workspace atau nama repo
         githubRepo: doc.data().githubRepo,
+        githubBranch: doc.data().githubBranch, // Tambahkan githubBranch
     }));
 }
 
