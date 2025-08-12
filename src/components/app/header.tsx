@@ -26,8 +26,8 @@ import {
   DropdownMenuGroup,
 } from '../ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { UpgradeModal } from '../upgrade-modal';
 import * as React from 'react';
+import Link from 'next/link';
 
 type AppHeaderProps = {
   children?: React.ReactNode;
@@ -47,10 +47,12 @@ export function AppHeader({ children, onNewPost, onUpgradeClick }: AppHeaderProp
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b px-4 lg:px-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1">
         {children}
+        <Link href="/workspace" >
         <Icons.logo className="h-6 w-6" />
         <h1 className="font-headline text-xl font-bold">Jekyll Buildr</h1>
+        </Link>
       </div>
       <div className="flex items-center gap-2">
          {onNewPost && (
