@@ -19,6 +19,7 @@ type Workspace = {
   id: string;
   name: string;
   githubRepo?: string;
+  githubBranch?: string;
 };
 
 export default function DashboardPage() {
@@ -174,6 +175,7 @@ export default function DashboardPage() {
                     <div>
                       <CardTitle>{ws.name}</CardTitle>
                       <CardDescription>{ws.githubRepo || 'Local Project'}</CardDescription>
+                      <CardDescription>{ws.githubBranch || 'none'}</CardDescription>
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
