@@ -224,7 +224,6 @@ function SettingsPageContent() {
         }
     };
 
-
     // Fungsi untuk mengambil branch saat repo dipilih di dalam dialog
     // const onRepoSelectInDialog = async (repoFullName: string) => {
     //     setSelectedRepo(repoFullName);
@@ -297,7 +296,7 @@ function SettingsPageContent() {
                         )}
                         </Card>
                         {/* Kartu Pengaturan GitHub */}
-                        <Card className="md:col-span-1 flex flex-col">
+                        <Card className="md:col-span-2 flex flex-col">
                             <CardHeader>
                                 <div className="flex justify-between items-center gap-2">
                                     <div className="flex items-center gap-2">

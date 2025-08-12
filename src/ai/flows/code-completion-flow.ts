@@ -1,9 +1,9 @@
 'use server';
 /**
- * @fileOverview A Jekyll component generator AI Buildr.
+ * @fileOverview A Jekyll code completion AI Buildr.
  *
- * - generateJekyllComponent - A function that handles the Jekyll component generation process.
- * - JekyllComponentOutput - The return type for the generateJekyllComponent function.
+ * - generateCodeCompletion - A function that handles the Jekyll code completion process.
+ * - CodeCompletionOutput - The return type for the generateCodeCompletion function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -62,7 +62,7 @@ ${input.context}`,
         config: {
             temperature: 0.2,
             // Hapus total 'stop' untuk debugging. Biarkan AI lebih bebas.
-            maxOutputTokens: 60, // Batasi panjang maksimal saran
+            maxOutputTokens: 48, // Tingkatkan untuk kode yang lebih lengkap
         }
     });
     return output!;
