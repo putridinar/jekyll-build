@@ -7,7 +7,7 @@ import { getWorkspaces, setActiveWorkspace, createDefaultWorkspaceIfNeeded, dele
 import { LoadingScreen } from '@/components/app/LoadingScreen';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight, Loader2, Trash2, Lock } from 'lucide-react';
+import { PlusCircle, ArrowRight, Loader2, Trash2, Lock, Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -176,12 +176,13 @@ export default function DashboardPage() {
   };
   
   if (authLoading || isLoading) {
-    return <LoadingScreen message="Loading your dashboard..." />;
+    return <LoadingScreen message="Load your dashboard..." />;
   }
 
   return (
     <div className="min-h-screen bg-muted/20">
-      <div className="container px-6 mx-auto max-w-5xl py-12">
+    <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
+      <div className="container px-6 mx-auto max-w-5xl py-12 opacity-90">
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold font-headline">Welcome, {user?.displayName}!</h1>
@@ -214,8 +215,8 @@ export default function DashboardPage() {
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                       <CardTitle>{ws.name}</CardTitle>
-                      <CardDescription>{ws.githubRepo || 'Local Project'}</CardDescription>
-                      <CardDescription>{ws.githubBranch || 'none'}</CardDescription>
+                      <CardDescription>Repo: {ws.githubRepo || 'Local Project'}</CardDescription>
+                      <CardDescription>Branch: {ws.githubBranch || 'none'}</CardDescription>
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -240,16 +241,17 @@ export default function DashboardPage() {
                       </AlertDialogContent>
                     </AlertDialog>
                   </CardHeader>
-                  <CardContent onClick={() => handleWorkspaceClick(ws.id)}>
+                  <CardContent className='flex justify-between items-center' onClick={() => handleWorkspaceClick(ws.id)}>
                     <p className="text-sm text-muted-foreground">Click to open editor</p>
+                    <Terminal className="h-6 w-6" />
                   </CardContent>
                 </Card>
               ))}
-               <Card className="flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
+               <Card className="relative flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary hover:text-primary transition-all cursor-pointer overflow-hidden">
                   <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                       <DialogTrigger asChild>
-                          <Button variant="ghost" className="flex flex-col items-center justify-center h-full w-full">
-                              <PlusCircle className="h-12 w-12 text-muted-foreground mb-2" />
+                          <Button variant="ghost" className="relative text-lg flex flex-col items-center justify-center hover:text-primary h-full w-full">
+                              <PlusCircle className="relative cursor-auto h-12 w-12 text-muted-foreground mb-2" />
                               <p className="font-semibold">Create New Workspace</p>
                           </Button>
                       </DialogTrigger>
@@ -308,14 +310,15 @@ export default function DashboardPage() {
             <>
               {settings.githubRepo ? (
                 // Display GitHub workspace
-                <Card key={settings.activeWorkspaceId || 'github-workspace'} className="relative cursor-pointer p-4 hover:border-primary transition-all" onClick={() => handleWorkspaceClick(settings.activeWorkspaceId || 'default')}>
+                <Card key={settings.activeWorkspaceId || 'github-workspace'} className="relative cursor-pointer p-4 hover:border-primary hover:text-primary transition-all" onClick={() => handleWorkspaceClick(settings.activeWorkspaceId || 'default')}>
                   <CardHeader>
                     <CardTitle>{settings.githubRepo.split('/')[1]}</CardTitle> {/* Display repo name */}
-                    <CardDescription>{settings.githubRepo}</CardDescription>
-                    <CardDescription>{settings.githubBranch}</CardDescription>
+                    <CardDescription>Repo: {settings.githubRepo}</CardDescription>
+                    <CardDescription>Branch: {settings.githubBranch}</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className='flex justify-between items-center'>
                     <p className="text-sm text-muted-foreground">Click to open editor</p>
+                    <Terminal className="h-6 w-6" />
                   </CardContent>
                 </Card>
               ) : (
@@ -410,7 +413,7 @@ export default function DashboardPage() {
 
               {/* Always display the locked "New Workspace" card for free users */}
               <Card
-                className="relative flex p-4 flex-col items-center justify-center border-2 border-dashed transition-all cursor-pointer overflow-hidden"
+                className="relative flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary hover:text-primary transition-all cursor-pointer overflow-hidden"
                 onClick={() => toast({ title: 'New workspace for proUser only', description: 'Upgrade to Pro to create new workspaces from your GitHub repositories.' })}
               >
                 <div className="absolute inset-0 bg-white/1 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">

@@ -25,7 +25,7 @@ export default function LandingPage() {
     <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
     <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-5"></div>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-      <div className="text-center">
+      <div className="hero-flex text-center">
         <h1 className="fade-in text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight ">
           The Modern Way to
           <br />

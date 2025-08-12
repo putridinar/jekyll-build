@@ -64,7 +64,8 @@ export default function LoginPage() {
 
     return (
         <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-sm dark:bg-[#3d444d]">
+    <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
+            <Card className="w-full max-w-sm dark:bg-[#3d444d] opacity-90">
                 <CardHeader className="text-center">
                      <div className="flex justify-center mb-4">
                         <Icons.logo className="h-10 w-10"/>

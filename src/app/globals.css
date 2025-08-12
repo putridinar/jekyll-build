@@ -32,7 +32,7 @@
     --radius: 0.5rem;
   }
  
-  .dark {
+.dark {
     --background: 0 0% 13%;
     --foreground: 0 0% 98%;
     --card: 0 0% 13%;
@@ -75,50 +75,57 @@
     height: 8px;
   }
 
-  .dark ::-webkit-scrollbar-track {
+.dark ::-webkit-scrollbar-track {
     background: hsl(var(--background));
   }
   
-  .dark ::-webkit-scrollbar-thumb {
+.dark ::-webkit-scrollbar-thumb {
     background: hsl(var(--muted));
     border-radius: 4px;
   }
   
-  .dark ::-webkit-scrollbar-thumb:hover {
+.dark ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--secondary-foreground));
   }
 
 }
-    .hero-glow {
-      box-shadow: 0 0 60px -20px rgba(0, 0, 0, 0.15);
-    }
-    .btn-shine {
-      position: relative;
-      overflow: hidden;
-    }
-    .btn-shine::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(120deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.05) 40%, rgba(255,255,255,.0) 100%);
-      transform: rotate(25deg);
-      animation: shine 6s infinite linear;
-    }
+.hero-flex {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    gap: 50px;
+}
+.hero-glow {
+    box-shadow: 0 0 60px -20px rgba(0, 0, 0, 0.15);
+}
+.btn-shine {
+    position: relative;
+    overflow: hidden;
+}
+.btn-shine::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(120deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.05) 40%, rgba(255,255,255,.0) 100%);
+    transform: rotate(25deg);
+    animation: shine 6s infinite linear;
+}
     @keyframes shine {
-      0% { transform: translateX(-100%) rotate(25deg); }
-      100% { transform: translateX(100%) rotate(25deg); }
-    }
-    .fade-in {
-      opacity: 0;
-      transform: translateY(30px);
-      animation: fadeInUp 1s forwards;
-    }
+    0% { transform: translateX(-100%) rotate(25deg); }
+    100% { transform: translateX(100%) rotate(25deg); }
+}
+.fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeInUp 1s forwards;
+}
     @keyframes fadeInUp {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
+}
