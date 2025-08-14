@@ -1,3 +1,4 @@
+// src/components/app/file-explorer.tsx
 
 'use client';
 
@@ -129,14 +130,25 @@ function FileTree({
                             isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                         )}>
                              {node.type === 'folder' && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onNewFile(node.path); }}>
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>New File</p></TooltipContent>
-                                </Tooltip>
+                                <>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onNewFile(node.path); }}>
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>New File</p></TooltipContent>
+                                    </Tooltip>
+                                    {/* --- TOMBOL BARU DITAMBAHKAN DI SINI --- */}
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onNewFolder(node.path); }}>
+                                                <FolderPlus className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>New Folder</p></TooltipContent>
+                                    </Tooltip>
+                                </>
                              )}
                             <Tooltip>
                                 <TooltipTrigger asChild>

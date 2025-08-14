@@ -182,7 +182,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-muted/20">
     <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
-      <div className="container px-6 mx-auto max-w-5xl py-12 opacity-90">
+      <div className="container px-6 mx-auto max-w-5xl py-5 opacity-90">
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold font-headline">Welcome, {user?.displayName}!</h1>
