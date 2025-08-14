@@ -35,6 +35,8 @@ import {
   getTemplateState,
   cloneRepository,
   saveWorkspaceState,
+  getWorkspaceState,
+  createDefaultWorkspaceIfNeeded,
 } from '@/actions/content';
 import {useDebouncedCallback} from 'use-debounce';
 import {CodeEditor} from '@/components/app/code-editor';
@@ -402,31 +404,51 @@ function HomePageContent() {
     }
   }, [user, projectLoaded, toast]);
 
+
   React.useEffect(() => {
     const loadProject = async () => {
-        if (user && loadingState === 'idle') {
+        if (user && !projectLoaded) {
             setLoadingState('loading');
             
-            const result = await getTemplateState();
-            if (result.success && result.data?.fileStructure) {
-                // ... (logika memuat dari Firestore)
+            // Dapatkan pengaturan pengguna untuk menemukan workspace yang aktif
+            const settingsResult = await getSettings();
+            
+            let workspaceIdToLoad = 'default'; // Fallback untuk pengguna gratis atau jika tidak ada workspace aktif
+            
+            if (user.role === 'proUser' && settingsResult.success && settingsResult.data?.activeWorkspaceId) {
+                workspaceIdToLoad = settingsResult.data.activeWorkspaceId;
+            }
+            
+            setActiveWorkspaceId(workspaceIdToLoad);
+            
+            let workspaceDataResult;
+            if (workspaceIdToLoad !== 'default') {
+                workspaceDataResult = await getWorkspaceState(workspaceIdToLoad);
+            } else {
+                // Untuk workspace default, gunakan logika yang mungkin membuatnya jika belum ada
+                await createDefaultWorkspaceIfNeeded(user.uid);
+                workspaceDataResult = await getWorkspaceState('default');
+            }
+
+            if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
+                const { data } = workspaceDataResult;
+                setFileStructure(data.fileStructure);
+                setActiveFile(data.activeFile);
+                setFileContents(data.fileContents);
+                setExpandedFolders(new Set(data.expandedFolders || []));
+                setContent(data.fileContents[data.activeFile] ?? '');
+                toast({ title: 'Workspace Loaded', description: `Loaded project: ${data.name || 'Default Project'}` });
+                setProjectLoaded(true);
                 setLoadingState('loaded');
             } else {
-                setLoadingState('cloning'); // Ganti state ke 'cloning'
-                const cloneResult = await cloneRepository();
-                if (cloneResult.success) {
-                    // ... (logika setelah clone berhasil)
-                    setLoadingState('loaded');
-                } else {
-                    // ... (logika error)
-                    setLoadingState('error');
-                }
+                toast({ title: 'Failed to Load Workspace', description: workspaceDataResult.error || 'Could not find workspace data.', variant: 'destructive' });
+                setLoadingState('error');
             }
         }
     };
     
     loadProject();
-  }, [user, loadingState, toast]);
+}, [user, projectLoaded, toast]);
 
   const handleFixCode = async () => {
     if (!content) return;
@@ -474,19 +496,32 @@ function HomePageContent() {
     }
   }
 
+  // Pembaruan fungsi debouncedSave
   const debouncedSave = useDebouncedCallback(async (stateToSave) => {
+    if (!activeWorkspaceId) return; // Jangan simpan jika tidak ada workspace yang aktif
+
     setIsSaving(true);
-    if (activeWorkspaceId) {
-      await saveWorkspaceState(activeWorkspaceId, stateToSave);
-    }
     try {
-      await saveTemplateState(stateToSave);
+      await saveWorkspaceState(activeWorkspaceId, stateToSave);
     } catch (error) {
       console.error('Auto-save error:', error);
     } finally {
       setIsSaving(false);
     }
   }, 2000);
+
+  // Pembaruan useEffect yang memanggil debouncedSave
+  React.useEffect(() => {
+    if (loading || !user || !projectLoaded) return;
+
+    const stateToSave = {
+      fileStructure,
+      activeFile,
+      fileContents,
+      expandedFolders: Array.from(expandedFolders),
+    };
+    debouncedSave(stateToSave);
+  }, [fileStructure, activeFile, fileContents, expandedFolders, debouncedSave, loading, user, projectLoaded]);
 
   React.useEffect(() => {
     if (loading || !user) return;

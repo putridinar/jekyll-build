@@ -794,7 +794,15 @@ export async function getWorkspaceState(workspaceId: string) {
         const docSnap = await stateRef.get();
         if (docSnap.exists) {
             const data = docSnap.data();
-            // ... (logika konversi timestamp jika ada)
+            
+            // PERBAIKAN: Ubah Timestamp menjadi angka (milidetik)
+            if (data?.createdAt && data.createdAt.toMillis) {
+                data.createdAt = data.createdAt.toMillis();
+            }
+            if (data?.savedAt && data.savedAt.toMillis) {
+                data.savedAt = data.savedAt.toMillis();
+            }
+
             return { success: true, data: data };
         }
         return { success: true, data: null };
@@ -900,7 +908,7 @@ export async function createWorkspace(repoFullName: string, branch: string) {
             name: repoFullName.split('/')[1] || 'Workspace Baru',
             githubRepo: repoFullName,
             githubBranch: branch,
-            fileStructure, // <-- Sekarang ini akan berisi data yang benar
+            fileStructure,
             fileContents,
             activeFile: 'index.html',
             createdAt: FieldValue.serverTimestamp(),
