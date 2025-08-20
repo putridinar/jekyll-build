@@ -15,48 +15,54 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+        // 1. Dapatkan info user dari GitHub
         const githubResponse = await fetch('https://api.github.com/user', {
             headers: { 'Authorization': `Bearer ${githubToken}` },
         });
         if (!githubResponse.ok) throw new Error('Failed to fetch user from GitHub.');
         
         const githubUser = await githubResponse.json();
-        const githubUsername = githubUser.login;
-        const githubId = githubUser.id.toString();
+        const userId = githubUser.uid.toString();
+        const role = githubUser.role;
+        const email = githubUser.email;
 
-        // 1. Inisialisasi dengan null
-        let finalUid: string | null = null; 
+        // --- LOGIKA BARU UNTUK MENGGABUNGKAN AKUN ---
+        
+        // 2. Coba cari user berdasarkan UID yang sama dengan ID GitHub
+        const userRefByUid = adminDb.collection('users').doc(userId);
+        let userSnap = await userRefByUid.get();
+        let userRecord = userSnap.data();
+        let finalUid = userId;
 
-        const settingsQuery = adminDb.collectionGroup('settings').where('githubUsername', '==', githubUsername);
-        const querySnapshot = await settingsQuery.get();
+        // 3. Jika tidak ketemu, coba cari berdasarkan email
+        if (!userSnap.exists && role) {
+            const query = adminDb.collection('users').where('uid', '==', role);
+            const querySnapshot = await query.get();
+            
+            if (!querySnapshot.empty) {
+                // User ditemukan via email! Ini adalah user asli kita.
+                const existingUserDoc = querySnapshot.docs[0];
+                userRecord = existingUserDoc.data();
+                finalUid = existingUserDoc.id; // Gunakan UID asli dari Firebase Auth
 
-        if (!querySnapshot.empty) {
-            const settingsDoc = querySnapshot.docs[0];
-            finalUid = settingsDoc.ref.parent.parent!.id;
-            console.log(`[API-LOG] User found via githubUsername. Firebase UID is: ${finalUid}`);
-            await settingsDoc.ref.update({ githubAccountId: githubId });
+                // Update dokumen yang ada dengan ID GitHub untuk login di masa depan
+                await existingUserDoc.ref.update({ userId: userId });
+            }
         }
 
-        if (!finalUid) {
-            console.log(`[API-LOG] User not found by username. Creating new user with UID = GitHub ID: ${githubId}`);
-            const newUserRef = adminDb.collection('users').doc(githubId);
-            await newUserRef.set({
-                uid: githubId,
-                githubId: githubId,
-                email: githubUser.email,
+        // 4. Jika masih tidak ada, buat user baru
+        if (!userRecord) {
+            await userRefByUid.set({
+                uid: userId,
+                email: email,
                 displayName: githubUser.name || githubUser.login,
                 photoURL: githubUser.avatar_url,
                 role: 'freeUser',
                 createdAt: FieldValue.serverTimestamp(),
             });
-            finalUid = githubId;
         }
         
-        // 2. Tambahkan pemeriksaan sebelum digunakan
-        if (!finalUid) {
-            throw new Error("Could not determine a valid user ID to create a token.");
-        }
-        
+        // 5. Buat Custom Token menggunakan UID yang benar (finalUid)
         const firebaseCustomToken = await adminAuth.createCustomToken(finalUid);
         
         return NextResponse.json({ firebaseCustomToken });
