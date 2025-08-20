@@ -3,8 +3,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { string } from 'zod';
-
 
 export async function POST(request: NextRequest) {
     if (!adminAuth || !adminDb) {
@@ -17,46 +15,53 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        // 1. Dapatkan info user dari GitHub untuk mendapatkan ID akun mereka
+        // 1. Dapatkan info user dari GitHub
         const githubResponse = await fetch('https://api.github.com/user', {
             headers: { 'Authorization': `Bearer ${githubToken}` },
         });
         if (!githubResponse.ok) throw new Error('Failed to fetch user from GitHub.');
         
         const githubUser = await githubResponse.json();
-        const githubId = githubUser.id.toString(); // Ini ID akun GitHub
+        const githubId = githubUser.id.toString();
+        const githubEmail = githubUser.email;
 
-        // --- INI DIA LOGIKA BARU BERDASARKAN IDEMU ---
-        let finalUid: string;
+        // --- LOGIKA BARU UNTUK MENGGABUNGKAN AKUN ---
+        
+        // 2. Coba cari user berdasarkan UID yang sama dengan ID GitHub
+        const userRefByUid = adminDb.collection('users').doc(githubId);
+        let userSnap = await userRefByUid.get();
+        let userRecord = userSnap.data();
+        let finalUid = githubId;
 
-        // 2. Cari di semua sub-koleksi 'settings' yang punya githubAccountId yang cocok
-        const settingsQuery = adminDb.collectionGroup('settings').where('githubAccountId', '==', githubId);
-        const querySnapshot = await settingsQuery.get();
+        // 3. Jika tidak ketemu, coba cari berdasarkan email
+        if (!userSnap.exists && githubEmail) {
+            const query = adminDb.collection('users').where('email', '==', githubEmail);
+            const querySnapshot = await query.get();
+            
+            if (!querySnapshot.empty) {
+                // User ditemukan via email! Ini adalah user asli kita.
+                const existingUserDoc = querySnapshot.docs[0];
+                userRecord = existingUserDoc.data();
+                finalUid = existingUserDoc.id; // Gunakan UID asli dari Firebase Auth
 
-        if (!querySnapshot.empty) {
-            // DITEMUKAN! Pengguna ini sudah pernah menghubungkan akunnya dari web app.
-            const settingsDoc = querySnapshot.docs[0];
-            // ID dokumen induk dari sub-koleksi 'settings' adalah Firebase Auth UID yang kita cari!
-            finalUid = settingsDoc.ref.parent.parent!.id; 
-            console.log(`[API-LOG] User found via settings collection. Firebase UID is: ${finalUid}`);
-        } else {
-            // 3. Jika tidak ketemu, buat user baru
-            console.log(`[API-LOG] User not found in settings. Creating new user with UID = GitHub ID: ${githubId}`);
-            const newUserRef = adminDb.collection('users').doc(githubId);
-            await newUserRef.set({
+                // Update dokumen yang ada dengan ID GitHub untuk login di masa depan
+                await existingUserDoc.ref.update({ githubId: githubId });
+            }
+        }
+
+        // 4. Jika masih tidak ada, buat user baru
+        if (!userRecord) {
+            await userRefByUid.set({
                 uid: githubId,
-                email: githubUser.email,
+                email: githubEmail,
                 displayName: githubUser.name || githubUser.login,
                 photoURL: githubUser.avatar_url,
                 role: 'freeUser',
                 createdAt: FieldValue.serverTimestamp(),
-                // Kita juga bisa tambahkan githubId di sini untuk konsistensi
-                githubId: githubId,
             });
-            finalUid = githubId;
         }
         
-        // 4. Buat Custom Token menggunakan UID yang benar dan final
+        // 5. Buat Custom Token menggunakan UID yang benar (finalUid)
         const firebaseCustomToken = await adminAuth.createCustomToken(finalUid);
         
         return NextResponse.json({ firebaseCustomToken });
