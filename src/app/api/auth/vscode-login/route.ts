@@ -15,69 +15,49 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        // 1. Get user info from GitHub
         const githubResponse = await fetch('https://api.github.com/user', {
             headers: { 'Authorization': `Bearer ${githubToken}` },
         });
         if (!githubResponse.ok) throw new Error('Failed to fetch user from GitHub.');
         
         const githubUser = await githubResponse.json();
+        const githubUsername = githubUser.login;
         const githubId = githubUser.id.toString();
-        const email = githubUser.email;
-        
-        let userRecord: any = null;
-        let finalUid: string | null = null;
 
-        // 2. Try to find user by githubId first
-        const userQueryByGithubId = adminDb.collection('users').where('githubId', '==', githubId);
-        const githubIdQuerySnapshot = await userQueryByGithubId.get();
+        // 1. Inisialisasi dengan null
+        let finalUid: string | null = null; 
 
-        if (!githubIdQuerySnapshot.empty) {
-            // User found by githubId
-            const userDoc = githubIdQuerySnapshot.docs[0];
-            userRecord = userDoc.data();
-            finalUid = userDoc.id;
-        } 
-        // 3. If not found, try to find by email
-        else if (email) {
-            const userQueryByEmail = adminDb.collection('users').where('email', '==', email);
-            const emailQuerySnapshot = await userQueryByEmail.get();
+        const settingsQuery = adminDb.collectionGroup('settings').where('githubUsername', '==', githubUsername);
+        const querySnapshot = await settingsQuery.get();
 
-            if (!emailQuerySnapshot.empty) {
-                // User found by email, link githubId
-                const userDoc = emailQuerySnapshot.docs[0];
-                userRecord = userDoc.data();
-                finalUid = userDoc.id;
-                
-                // Add githubId to existing user for future logins
-                await userDoc.ref.update({ githubId: githubId });
-            }
+        if (!querySnapshot.empty) {
+            const settingsDoc = querySnapshot.docs[0];
+            finalUid = settingsDoc.ref.parent.parent!.id;
+            console.log(`[API-LOG] User found via githubUsername. Firebase UID is: ${finalUid}`);
+            await settingsDoc.ref.update({ githubAccountId: githubId });
         }
 
-        // 4. If still no user record, create a new user
-        if (!userRecord) { // Use githubId as the UID for the new user
+        if (!finalUid) {
+            console.log(`[API-LOG] User not found by username. Creating new user with UID = GitHub ID: ${githubId}`);
             const newUserRef = adminDb.collection('users').doc(githubId);
-            
-            const newUser = {
-                uid: finalUid,
-                email: email,
+            await newUserRef.set({
+                uid: githubId,
+                githubId: githubId,
+                email: githubUser.email,
                 displayName: githubUser.name || githubUser.login,
                 photoURL: githubUser.avatar_url,
                 role: 'freeUser',
                 createdAt: FieldValue.serverTimestamp(),
-                githubId: githubId,
-            };
+            });
             finalUid = githubId;
-            
-            await newUserRef.set(newUser);
-            userRecord = newUser;
         }
         
-        // 5. Create Custom Token using the correct finalUid
+        // 2. Tambahkan pemeriksaan sebelum digunakan
         if (!finalUid) {
-            throw new Error("Could not determine a user ID for authentication.");
+            throw new Error("Could not determine a valid user ID to create a token.");
         }
-        const firebaseCustomToken = await adminAuth.createCustomToken(finalUid!);
+        
+        const firebaseCustomToken = await adminAuth.createCustomToken(finalUid);
         
         return NextResponse.json({ firebaseCustomToken });
 
