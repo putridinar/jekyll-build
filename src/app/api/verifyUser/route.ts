@@ -1,9 +1,9 @@
 // src/app/api/verifyUser/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb, adminAuth } from '@/lib/firebase-admin'; // Impor setup admin-mu
+import { adminDb, adminAuth } from '@/lib/firebase-admin'; // Impor setup admin
 
 export async function POST(request: NextRequest) {
-    // 1. Dapatkan token dari header yang dikirim oleh ekstensi VS Code
+    console.log("API /api/verifyUser endpoint was hit!");
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return NextResponse.json({ error: 'Unauthorized: No token provided.' }, { status: 401 });
