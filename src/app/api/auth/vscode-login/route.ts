@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
         const email = githubUser.email;
         const displayName = githubUser.name || githubUser.login;
         const photoURL = githubUser.avatar_url;
+        const role = 'freeUser';
 
         let uid: string;
 
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
             email: email,
             displayName: displayName,
             photoURL: photoURL,
+            role: role,
         }, { merge: true }); // Gunakan merge untuk jaga data lama seperti 'role'
 
         // 4. Buat Custom Token dengan UID yang sudah terunifikasi
