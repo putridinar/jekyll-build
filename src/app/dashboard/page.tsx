@@ -186,13 +186,15 @@ export default function DashboardPage() {
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold font-headline">Welcome, {user?.displayName}!</h1>
-            <p className="text-muted-foreground">Select a project to start working on or create a new one.</p>
           </div>
+          <Button onClick={() => { settings(); router.push('/settings'); }} variant="outline">
+            Setting
+          </Button>
           <Button onClick={() => { logout(); router.push('/login'); }} variant="outline">
             Logout
           </Button>
         </div>
-        
+        <p className="text-muted-foreground">Select a project to start working on or create a new one.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Tampilan untuk Pengguna Pro */}
           {user?.role === 'proUser' && !settings.installationId && (
