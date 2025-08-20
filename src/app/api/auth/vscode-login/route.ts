@@ -23,80 +23,73 @@ export async function POST(request: NextRequest) {
         
         const githubUser = await githubResponse.json();
         const githubId = githubUser.id.toString();
-        const email = githubUser.email; // Bisa jadi null
+        const email = githubUser.email;
         const displayName = githubUser.name || githubUser.login;
         const photoURL = githubUser.avatar_url;
 
         let uid: string;
 
-        try {
-            // 2. Cari user di Firebase Auth berdasarkan UID = githubId
-            // Ini akan menemukan user yang dibuat oleh alur VS Code sebelumnya.
-            const userRecord = await adminAuth.getUser(githubId);
-            uid = userRecord.uid;
-            console.log(`[API-LOG] User found directly in Auth by UID. UID: ${uid}`);
-        } catch (error: any) {
-            // Jika user tidak ditemukan, error 'auth/user-not-found' akan muncul. Kita lanjutkan.
-            if (error.code !== 'auth/user-not-found') {
-                throw error; // Lemparkan error lain yang tidak terduga
-            }
+        // 2. Cari di Firestore, adakah user yang sudah punya githubId ini?
+        const usersRef = adminDb.collection('users');
+        const query = usersRef.where('githubId', '==', githubId);
+        const querySnapshot = await query.get();
 
-            // 3. Jika tidak ketemu di Auth, cari di Firestore berdasarkan field 'githubId'
-            console.log(`[API-LOG] User not in Auth, querying Firestore for githubId: ${githubId}`);
-            const query = adminDb.collection('users').where('githubId', '==', githubId);
-            const querySnapshot = await query.get();
-
-            if (!querySnapshot.empty) {
-                // User ditemukan di Firestore, berarti dibuat dari Web App dan sudah pernah login dari VS Code
-                uid = querySnapshot.docs[0].id;
-                console.log(`[API-LOG] User found in Firestore by githubId field. UID: ${uid}`);
-            } else {
-                // 4. Benar-benar user baru untuk alur VS Code. Buat user baru di Auth & Firestore.
-                console.log(`[API-LOG] User not found anywhere. Creating new user in Auth & Firestore with UID = githubId.`);
-                
-                // Firebase Auth tidak mengizinkan UID kustom saat membuat user.
-                // Jadi, kita akan tetap menggunakan UID yang digenerate Firebase, TAPI kita jadikan githubId sebagai penghubung utama.
-                // Cara terbaik adalah dengan mencari berdasarkan email (jika ada), atau membuat user baru.
-                
-                let userRecord;
-                if (email) {
-                    try {
-                        userRecord = await adminAuth.getUserByEmail(email);
-                    } catch (e: any) {
-                        if (e.code !== 'auth/user-not-found') throw e;
-                    }
-                }
-
-                if (userRecord) {
-                    uid = userRecord.uid;
-                } else {
-                    const newUser = await adminAuth.createUser({
-                        displayName: displayName,
-                        photoURL: photoURL,
-                        email: email || null,
-                    });
-                    uid = newUser.uid;
-                }
-            }
+        if (!querySnapshot.empty) {
+            // DITEMUKAN! User ini sudah pernah login sebelumnya.
+            // Gunakan UID yang sudah ada dari dokumen tersebut.
+            const existingUserDoc = querySnapshot.docs[0];
+            uid = existingUserDoc.id; // ID dokumen adalah UID Firebase Auth
+            console.log(`[API-LOG] User found in Firestore by githubId. UID: ${uid}`);
+        } else {
+            // TIDAK DITEMUKAN. Ini adalah login pertama dari VS Code untuk user ini.
+            // Kita akan buat user baru di Firebase Authentication untuk mendapatkan UID resmi.
+            console.log(`[API-LOG] User not found by githubId. Creating new user in Firebase Auth...`);
+            
+            // Coba buat user. Jika email sudah ada, Firebase akan error, dan kita tangkap di blok catch.
+            const newUserRecord = await adminAuth.createUser({
+                displayName: displayName,
+                photoURL: photoURL,
+                email: email || undefined, // Email bisa jadi null, tidak masalah
+                emailVerified: email ? true : false,
+            });
+            uid = newUserRecord.uid;
         }
         
-        // 5. Update/buat dokumen di Firestore menggunakan UID yang benar
+        // 3. Sekarang kita punya UID yang pasti dan tunggal. Buat/Update dokumen di Firestore.
         const userDocRef = adminDb.collection('users').doc(uid);
         await userDocRef.set({
             uid: uid,
+            githubId: githubId, // WAJIB: simpan githubId sebagai "jembatan"
             email: email,
             displayName: displayName,
             photoURL: photoURL,
-            githubId: githubId, // Selalu simpan/update githubId sebagai penghubung
-            role: (await userDocRef.get()).data()?.role || 'freeUser',
-        }, { merge: true });
+        }, { merge: true }); // Gunakan merge untuk jaga data lama seperti 'role'
 
-        // 6. Buat Custom Token
+        // 4. Buat Custom Token dengan UID yang sudah terunifikasi
         const firebaseCustomToken = await adminAuth.createCustomToken(uid);
         
         return NextResponse.json({ firebaseCustomToken });
 
     } catch (error: any) {
+        // Tangani kasus di mana user sudah ada di Firebase Auth (dibuat dari web) tapi belum punya githubId
+        if (error.code === 'auth/email-already-exists' && error.email) {
+            console.log(`[API-LOG] Email already exists. Linking githubId to existing user.`);
+            const user = await adminAuth.getUserByEmail(error.email);
+            const uid = user.uid;
+            
+            // Tambahkan githubId ke user yang sudah ada
+            const githubResponse = await fetch('https://api.github.com/user', {
+                headers: { 'Authorization': `Bearer ${githubToken}` },
+            });
+            const githubUserData = await githubResponse.json();
+            const githubId = githubUserData.id.toString();
+
+            await adminDb.collection('users').doc(uid).update({ githubId: githubId });
+            
+            const firebaseCustomToken = await adminAuth.createCustomToken(uid);
+            return NextResponse.json({ firebaseCustomToken });
+        }
+        
         console.error("VS Code login error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
