@@ -5,6 +5,10 @@ import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request: NextRequest) {
+    if (!adminAuth || !adminDb) {
+        console.error("Firebase Admin SDK not initialized.");
+        return NextResponse.json({ error: "Firebase Admin not configured on the server." }, { status: 500 });
+    }
     const { githubToken } = await request.json();
 
     if (!githubToken) {
