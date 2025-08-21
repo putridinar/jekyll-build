@@ -176,15 +176,17 @@ export async function checkAndRecordComponentGeneration() {
     }
 }
 
-
 /**
  * Checks if a user is allowed to generate AI post content.
  * Free users are limited to 1 generation per 24 hours.
  * If allowed, it also records the generation timestamp.
+ * ACCEPTS an optional userId to bypass cookie-based auth for API calls.
  */
-export async function checkAndRecordPostGeneration() {
+export async function checkAndRecordPostGeneration(userIdOverride?: string) { // <-- Menerima argumen opsional
     try {
-        const userId = await getUserId();
+        // Jika userId diberikan (dari API route), gunakan itu.
+        // Jika tidak, dapatkan dari cookie sesi (untuk panggilan dari web app).
+        const userId = userIdOverride || await getUserId(); // <-- Logika baru
         if (!adminDb) throw new Error('Firestore not initialized');
 
         const userRef = adminDb.collection('users').doc(userId);
