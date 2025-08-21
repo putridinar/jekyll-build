@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Github } from 'lucide-react';
+import Link from 'next/link';
 
 const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
 const GITHUB_APP_URL = `https://github.com/apps/${appName}/installations/new`;
@@ -184,17 +185,17 @@ export default function DashboardPage() {
     <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
       <div className="container px-6 mx-auto max-w-5xl py-5 opacity-90">
         <div className="mb-8 flex justify-between items-start">
-          <div>
             <h1 className="text-4xl font-bold font-headline">Welcome, {user?.displayName}!</h1>
-          </div>
-          <Button onClick={() => { settings(); router.push('/settings'); }} variant="outline">
+          <div className='flex items-center gap-4'>
+          <Link href='/settings'>
             Setting
-          </Button>
+          </Link>
           <Button onClick={() => { logout(); router.push('/login'); }} variant="outline">
             Logout
           </Button>
+          </div>
         </div>
-        <p className="text-muted-foreground">Select a project to start working on or create a new one.</p>
+        <p className="mb-8 text-muted-foreground">Select a project to start working on or create a new one.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Tampilan untuk Pengguna Pro */}
           {user?.role === 'proUser' && !settings.installationId && (
