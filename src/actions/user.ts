@@ -7,10 +7,10 @@ import { getUserId } from '@/lib/auth-utils';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // Tindakan ini menginisialisasi pengguna baru di Firestore.
-export async function initializeUser(userData: { uid: string, email?: string | null, displayName?: string | null, photoURL?: string | null }) {
+export async function initializeUser(userData: { uid: string, githubId: string, email?: string | null, displayName?: string | null, photoURL?: string | null }) {
     try {
         if (!adminDb) throw new Error('Firebase Admin not initialized');
-        const { uid, email, displayName, photoURL } = userData;
+        const { uid, email, displayName, githubId, photoURL } = userData;
 
         const userRef = adminDb.collection('users').doc(uid);
         
@@ -22,6 +22,7 @@ export async function initializeUser(userData: { uid: string, email?: string | n
 
         await userRef.set({
             uid,
+            githubId,
             email,
             displayName,
             photoURL,
@@ -294,9 +295,7 @@ export async function updateUserRole(newRole: 'freeUser' | 'proUser', licenseId:
             throw new Error('Firestore not initialized');
         }
 
-        // Verifikasi licenseId via worker endpoint (integrasi dengan Cloudflare Worker)
-        const workerUrl = process.env.WORKER_URL || 'https://your-worker.workers.dev'; // Gunakan env untuk production
-        const res = await fetch(`${workerUrl}/check-license?id=${licenseId}`);
+        const res = await fetch(`/api/verifyUser?id=${licenseId}`);
         if (!res.ok) {
             throw new Error('Failed to verify license from worker.');
         }

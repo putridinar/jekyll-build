@@ -88,12 +88,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) {
-          await initializeUser({
-            uid: authUser.uid,
-            email: authUser.email,
-            displayName: authUser.displayName,
-            photoURL: authUser.photoURL,
-          });
+          // Dapatkan githubId dari providerData saat user pertama kali dibuat
+          const githubId = authUser.providerData.find(p => p.providerId === 'github.com')?.uid;
+          if (githubId) {
+            await initializeUser({
+              uid: authUser.uid,
+              githubId: githubId, // Gunakan githubId yang sudah pasti ada
+              email: authUser.email,
+              displayName: authUser.displayName,
+              photoURL: authUser.photoURL,
+            });
+          }
           setUser({ ...authUser, role: 'freeUser' });
         } else {
           setUser({ ...authUser, role: userSnap.data()?.role, payerId: userSnap.data()?.payerId });
