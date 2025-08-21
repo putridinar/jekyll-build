@@ -14,7 +14,7 @@ import { CheckCircle, Star, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
-import { PayPalButtons } from "@paypal/react-paypal-js";
+import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import type { OnApproveData, CreateSubscriptionActions } from "@paypal/paypal-js";
 import { string } from "zod";
 
@@ -31,10 +31,15 @@ const ProFeatures = [
     'AI fixes for code errors',
 ];
 
-const PAYPAL_PLAN_ID = process.env.PAYPAL_SANDBOX_ENABLED === 'true'
+const isSandbox = process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_ENABLED === 'true';
+
+const PAYPAL_PLAN_ID = isSandbox
   ? process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_PLAN_ID
   : process.env.NEXT_PUBLIC_PAYPAL_LIVE_PLAN_ID;
 
+const PAYPAL_CLIENT_ID = isSandbox
+    ? process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID
+    : process.env.NEXT_PUBLIC_PAYPAL_LIVE_CLIENT_ID;
 
 export function UpgradeModal({ isOpen, onOpenChange }: UpgradeModalProps) {
   const { toast } = useToast();
@@ -70,25 +75,43 @@ export function UpgradeModal({ isOpen, onOpenChange }: UpgradeModalProps) {
         description: "Your subscription is being activated. Please wait...",
     });
 
-    setTimeout(async () => {
-        try {
-            await refreshUser(); 
-            toast({
-                title: "Upgrade Complete!",
-                description: "Welcome to the Pro plan. Your new features are now unlocked.",
-                duration: 5000,
-            });
-        } catch (e) {
-             toast({
-                title: "Sync Error",
-                description: "Could not immediately sync your new role. Please try refreshing the page.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsProcessing(false);
-            onOpenChange(false);
+    try {
+        const response = await fetch('/api/paypal/capture-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                orderID: data.orderID,
+                subscriptionID: data.subscriptionID,
+                payerID: data.payerID,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to capture order.');
         }
-    }, 8000); 
+
+        // Order captured successfully, now refresh user data
+        await refreshUser();
+        toast({
+            title: "Upgrade Complete!",
+            description: "Welcome to the Pro plan. Your new features are now unlocked.",
+            duration: 5000,
+        });
+
+    } catch (e: any) {
+        toast({
+            title: "Sync Error",
+            description: e.message || "Could not sync your new role. Please try refreshing the page.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsProcessing(false);
+        onOpenChange(false);
+    }
   };
 
   const onError = (err: any) => {
@@ -137,13 +160,21 @@ export function UpgradeModal({ isOpen, onOpenChange }: UpgradeModalProps) {
                             <p className="text-muted-foreground">Finalizing your upgrade... <br/> Please wait, this window will close automatically.</p>
                         </div>
                     ) : (
-                        <PayPalButtons
-                            style={{ layout: "vertical", color: 'white', shape: "rect", label: "subscribe" }}
-                            createSubscription={createSubscription}
-                            onApprove={onApprove}
-                            onError={onError}
-                            disabled={isProcessing || !user || !PAYPAL_PLAN_ID}
-                        />
+                        <>
+                            {!PAYPAL_CLIENT_ID ? (
+                                <p className="text-red-500">PayPal is not configured. Please contact support.</p>
+                            ) : (
+                                <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, components: 'buttons', intent: 'subscription', vault: true }}>
+                                    <PayPalButtons
+                                        style={{ layout: "vertical", color: 'white', shape: "rect", label: "subscribe",  }}
+                                        createSubscription={createSubscription}
+                                        onApprove={onApprove}
+                                        onError={onError}
+                                        disabled={isProcessing || !user || !PAYPAL_PLAN_ID}
+                                    />
+                                </PayPalScriptProvider>
+                            )}
+                        </>
                     )}
                 </div>
             </DialogFooter>

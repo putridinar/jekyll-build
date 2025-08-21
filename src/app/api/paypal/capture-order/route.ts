@@ -1,6 +1,25 @@
 
 import { upgradeToPro } from '@/actions/user';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { adminAuth } from '@/lib/firebase-admin';
+
+async function getUserIdFromSession() {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session')?.value;
+    if (!sessionCookie) {
+        throw new Error('Not authenticated. Please log in.');
+    }
+    if (!adminAuth) {
+        throw new Error('Firebase Admin SDK is not initialized.');
+    }
+    try {
+        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, false);
+        return decodedClaims.uid;
+    } catch (error) {
+        throw new Error('Session expired or invalid. Please log in again.');
+    }
+}
 
 /**
  * Menangkap pesanan PayPal setelah pengguna menyetujui pembayaran.
@@ -8,13 +27,13 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(request: NextRequest) {
     try {
-        const { orderID, subscriptionID } = await request.json();
+        const { orderID, subscriptionID, payerID } = await request.json();
         if (!orderID) {
             return new NextResponse('Missing orderID', { status: 400 });
         }
 
         const userId = await getUserIdFromSession();
-        const result = await upgradeToPro(userId, subscriptionID);
+        const result = await upgradeToPro(userId, subscriptionID, payerID);
 
         if (!result.success) {
             console.error(`Failed to upgrade user ${userId}:`, result.error);
@@ -27,19 +46,5 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error("Error in capture-order route:", error);
         return new NextResponse(error.message, { status: 500 });
-    }
-}
-
-async function getUserIdFromSession() {
-    const cookieStore = cookies();
-    const sessionCookie = cookieStore.get('__session')?.value;
-    if (!sessionCookie) {
-        throw new Error('Not authenticated. Please log in.');
-    }
-    try {
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, false);
-        return decodedClaims.uid;
-    } catch (error) {
-        throw new Error('Session expired or invalid. Please log in again.');
     }
 }

@@ -4,7 +4,6 @@ import "./globals.css";
 import AppWrapper from "@/components/app/AppWrapper";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
-import { PayPalProvider } from "@/components/paypal-provider";
 
 export const metadata: Metadata = {
   title: "Jekyll Buildr",
@@ -54,11 +53,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <PayPalProvider>
             <AppWrapper>
               {children}
             </AppWrapper>
-          </PayPalProvider>
           <Toaster />
         </AuthProvider>
       </body>

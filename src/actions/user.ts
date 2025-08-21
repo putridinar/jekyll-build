@@ -97,7 +97,7 @@ export async function signOutUser() {
  * Fungsi ini dirancang untuk dipanggil dari lingkungan server yang aman (seperti penangan webhook)
  * dan tidak secara langsung sebagai tindakan server dari klien.
  */
-export async function upgradeToPro(userId: string, subscriptionId: string) {
+export async function upgradeToPro(userId: string, subscriptionId: string, payerId: string) {
     try {
         if (!adminDb) {
             throw new Error('Firebase Admin not initialized');
@@ -108,6 +108,7 @@ export async function upgradeToPro(userId: string, subscriptionId: string) {
         await userRef.update({ 
             role: 'proUser',
             paypalSubscriptionId: subscriptionId,
+            payerId: payerId,
             upgradedAt: FieldValue.serverTimestamp()
         });
 

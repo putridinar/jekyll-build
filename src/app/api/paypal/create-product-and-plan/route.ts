@@ -1,4 +1,4 @@
-
+// src/app/api/paypal/create-product-and-plan/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 const isSandbox = process.env.PAYPAL_SANDBOX_ENABLED === 'true';
@@ -83,6 +83,10 @@ export async function POST(req: NextRequest) {
         ],
         payment_preferences: {
           auto_bill_outstanding: true,
+          setup_fee: {
+            value: '0',
+            currency_code: 'USD',
+          },
           setup_fee_failure_action: 'CONTINUE',
           payment_failure_threshold: 1,
         },
