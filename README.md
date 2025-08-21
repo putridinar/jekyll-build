@@ -1,6 +1,13 @@
 # Jekyll Buildr v.2.1 [with AI Generation]
 
-Welcome to Jekyll Buildr, a modern mini-IDE web-based editor designed to streamline your Jekyll workflow. Built with a powerful tech stack, this application provides an intuitive interface to create, edit, and manage your Jekyll projects, complete with AI-powered features and direct integration with GitHub.
+Welcome to Jekyll Buildr, a modern mini-IDE web-based editor designed to streamline your Jekyll workflow. Built with a powerful tech stack, this application provides an intuitive interface to create, edit, and manage your Jekyll projects, complete with AI-powered features and direct integration with VScode & GitHub.
+
+```sh
+ext install DaffaDev.jekyll-buildr
+```
+
+![Status](https://img.shields.io/badge/status-release-green)
+![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/DaffaDev.jekyll-buildr?label=Marketplace)
 
 ## ✨ Key Features
 
