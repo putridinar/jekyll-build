@@ -258,7 +258,7 @@ export async function deletePost(contentType: string, slug: string) {
  * Menyimpan pengaturan GitHub ke subkoleksi pengguna saat ini.
  * Sekarang memastikan semua info GitHub yang relevan disimpan bersama. Hanya menyimpan bidang pengaturan yang ditentukan.
  */
-export async function saveSettings(settings: { githubRepo: string; githubBranch: string; }) {
+export async function saveSettings(settings: { githubRepo: string; githubBranch: string; activeWorkspaceId?: string; }) {
     try {
         const userId = await getUserId();
  if (!adminDb) {

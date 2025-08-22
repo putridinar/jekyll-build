@@ -97,27 +97,29 @@ export async function signOutUser() {
  * Fungsi ini dirancang untuk dipanggil dari lingkungan server yang aman (seperti penangan webhook)
  * dan tidak secara langsung sebagai tindakan server dari klien.
  */
-export async function upgradeToPro(userId: string, subscriptionId: string, payerId: string) {
+export async function upgradeToPro(userId: string, subscriptionId: string, payerId?: string) {
+    if (!userId || !subscriptionId) {
+        throw new Error('Invalid arguments');
+    }
+
     try {
-        if (!adminDb) {
-            throw new Error('Firebase Admin not initialized');
-        }
+        const userRef = adminDb?.collection('users').doc(userId);
         
-        const userRef = adminDb.collection('users').doc(userId);
-        
-        await userRef.update({ 
+        const dataToUpdate: { role: 'proUser'; paypalSubscriptionId: string; payerId?: string } = {
             role: 'proUser',
             paypalSubscriptionId: subscriptionId,
-            payerId: payerId,
-            upgradedAt: FieldValue.serverTimestamp()
-        });
+        };
 
-        console.log(`User ${userId} upgraded to proUser with subscription ${subscriptionId}.`);
-        return { success: true };
+        if (payerId) {
+            dataToUpdate.payerId = payerId;
+        }
 
-    } catch (error: any) {
+        await userRef?.update(dataToUpdate);
+
+        console.log(`User ${userId} upgraded to Pro`);
+    } catch (error) {
         console.error(`Error upgrading user ${userId} to Pro:`, error);
-        return { success: false, error: error.message || "Failed to upgrade user role in database." };
+        throw new Error(`Failed to upgrade user ${userId}: ${(error as Error).message}`);
     }
 }
 
@@ -240,7 +242,7 @@ export async function checkAndRecordPostGeneration(userIdOverride?: string) { //
  * Free users are limited to 1 generation per 24 hours.
  * If allowed, it also records the generation timestamp.
  */
-export async function checkAndRecordImageGeneration() {
+export async function checkAndRecordImageGeneration(userId: string) {
     try {
         const userId = await getUserId();
         if (!adminDb) throw new Error('Firestore not initialized');

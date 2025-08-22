@@ -33,10 +33,11 @@ export async function POST(request: NextRequest) {
         }
 
         const userId = await getUserIdFromSession();
-        const result = await upgradeToPro(userId, subscriptionID, payerID);
-
-        if (!result.success) {
-            console.error(`Failed to upgrade user ${userId}:`, result.error);
+        
+        try {
+            await upgradeToPro(userId, subscriptionID, payerID);
+        } catch (error: any) {
+            console.error(`Failed to upgrade user ${userId} in capture-order:`, error.message);
             // Bahkan jika pembaruan DB gagal, kita mungkin masih harus mengembalikan keberhasilan ke klien
             // karena pembayaran itu sendiri berhasil. Webhook harus menangani sisanya.
         }

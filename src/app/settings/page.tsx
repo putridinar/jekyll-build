@@ -151,22 +151,21 @@ function SettingsPageContent() {
         const newSettings = { ...settings, githubBranch: branch };
         setSettings(newSettings);
 
-        // Hanya simpan jika repo dan branch sudah dipilih
         if (newSettings.githubRepo && branch) {
             setIsSaving(true);
             try {
-                await saveSettings({ githubRepo: newSettings.githubRepo, githubBranch: branch });
-
-                // Add toast for workspace activation
-                toast({
-                    title: 'Workspace Update',
-                    description: 'Preparing your workspace with the selected repository.',
+                const workspaceId = newSettings.githubRepo.replace('/', '__'); // Create a firestore-safe ID
+                await saveSettings({ 
+                    githubRepo: newSettings.githubRepo, 
+                    githubBranch: branch,
+                    activeWorkspaceId: workspaceId, // Set the new active workspace
                 });
 
-                // 1. Hapus state proyek/template lama dari Firestore
-                await deleteTemplateState();
+                toast({
+                    title: 'Workspace Activated',
+                    description: 'Your selected repository is now the active workspace.',
+                });
                 
-                // 2. Arahkan pengguna kembali ke halaman utama.
                 router.push('/workspace');
 
             } catch (error: any) {

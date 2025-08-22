@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -370,39 +369,8 @@ function HomePageContent() {
     }
   }, [isMobile]);
 
-  React.useEffect(() => {
-    const loadProject = async () => {
-        if (user) {
-            const result = await getTemplateState();
-            if (result.success && result.data?.fileStructure) {
-                // Jika state ada di Firestore, restore di sini
-                setFileStructure(result.data.fileStructure);
-                setActiveFile(result.data.activeFile);
-                setFileContents(result.data.fileContents);
-                setExpandedFolders(new Set(result.data.expandedFolders));
-                setContent(result.data.fileContents[result.data.activeFile] ?? '');
-                toast({ title: 'Session Restored', description: 'Resuming your previous session.' });
-                setProjectLoaded(true);
-            } else {
-                // Jika state tidak ada, "clone" dari GitHub
-                toast({ title: 'Loading Project...', description: 'Fetching files from your GitHub repository.' });
-                const cloneResult = await cloneRepository();
-                if (cloneResult.success) {
-                    setFileStructure(cloneResult.fileStructure!);
-                    setFileContents(cloneResult.fileContents!);
-                    setActiveFile('index.html'); // Set default file
-                    setContent(cloneResult.fileContents!['index.html'] ?? '');
-                    setProjectLoaded(true);
-                } else {
-                    toast({ title: 'Failed to Load Project', description: cloneResult.error, variant: 'destructive' });
-                }
-            }
-        }
-    };
-    if (!projectLoaded) {
-        loadProject();
-    }
-  }, [user, projectLoaded, toast]);
+  // This useEffect block is removed as it contains legacy logic
+  // that conflicts with the multi-workspace implementation below.
 
 
   React.useEffect(() => {
@@ -410,40 +378,67 @@ function HomePageContent() {
         if (user && !projectLoaded) {
             setLoadingState('loading');
             
-            // Dapatkan pengaturan pengguna untuk menemukan workspace yang aktif
             const settingsResult = await getSettings();
             
-            let workspaceIdToLoad = 'default'; // Fallback untuk pengguna gratis atau jika tidak ada workspace aktif
-            
-            if (user.role === 'proUser' && settingsResult.success && settingsResult.data?.activeWorkspaceId) {
-                workspaceIdToLoad = settingsResult.data.activeWorkspaceId;
-            }
-            
+            const workspaceIdToLoad = settingsResult.data?.activeWorkspaceId || 'default';
             setActiveWorkspaceId(workspaceIdToLoad);
             
-            let workspaceDataResult;
-            if (workspaceIdToLoad !== 'default') {
-                workspaceDataResult = await getWorkspaceState(workspaceIdToLoad);
-            } else {
-                // Untuk workspace default, gunakan logika yang mungkin membuatnya jika belum ada
-                await createDefaultWorkspaceIfNeeded(user.uid);
-                workspaceDataResult = await getWorkspaceState('default');
-            }
+            const workspaceDataResult = await getWorkspaceState(workspaceIdToLoad);
 
             if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
+                // Workspace state exists, load it
                 const { data } = workspaceDataResult;
                 setFileStructure(data.fileStructure);
                 setActiveFile(data.activeFile);
                 setFileContents(data.fileContents);
                 setExpandedFolders(new Set(data.expandedFolders || []));
                 setContent(data.fileContents[data.activeFile] ?? '');
-                toast({ title: 'Workspace Loaded', description: `Loaded project: ${data.name || 'Default Project'}` });
-                setProjectLoaded(true);
+                toast({ title: 'Workspace Loaded', description: `Loaded: ${data.name || 'Workspace'}` });
+                setLoadingState('loaded');
+            } else if (workspaceIdToLoad === 'default') {
+                // Default workspace doesn't exist, create it from initial data
+                setLoadingState('loading');
+                toast({ title: 'Creating Default Workspace', description: 'Setting things up for you.' });
+                const defaultState = {
+                    name: 'Default Template',
+                    fileStructure: initialFileStructure,
+                    activeFile: 'index.html',
+                    fileContents: initialFileContents,
+                    expandedFolders: Array.from(expandedFolders),
+                };
+                await saveWorkspaceState('default', defaultState);
+                setFileStructure(defaultState.fileStructure);
+                setFileContents(defaultState.fileContents);
+                setActiveFile(defaultState.activeFile);
+                setContent(defaultState.fileContents[defaultState.activeFile] ?? '');
                 setLoadingState('loaded');
             } else {
-                toast({ title: 'Failed to Load Workspace', description: workspaceDataResult.error || 'Could not find workspace data.', variant: 'destructive' });
-                setLoadingState('error');
+                // A specific repo workspace is selected but doesn't exist, so clone it
+                setLoadingState('cloning');
+                toast({ title: 'Cloning Repository...', description: `Cloning ${settingsResult.data?.githubRepo}. This may take a moment.` });
+
+                const cloneResult = await cloneRepository();
+                if (cloneResult.success && cloneResult.fileStructure && cloneResult.fileContents) {
+                    const clonedState = {
+                        name: settingsResult.data?.githubRepo,
+                        fileStructure: cloneResult.fileStructure,
+                        activeFile: 'index.html',
+                        fileContents: cloneResult.fileContents,
+                        expandedFolders: Array.from(expandedFolders),
+                    };
+                    await saveWorkspaceState(workspaceIdToLoad, clonedState);
+                    setFileStructure(clonedState.fileStructure);
+                    setFileContents(clonedState.fileContents);
+                    setActiveFile(clonedState.activeFile);
+                    setContent(clonedState.fileContents[clonedState.activeFile] ?? '');
+                    toast({ title: 'Workspace Ready', description: `Successfully cloned ${settingsResult.data?.githubRepo}.` });
+                    setLoadingState('loaded');
+                } else {
+                    toast({ title: 'Failed to Clone Repository', description: cloneResult.error, variant: 'destructive' });
+                    setLoadingState('error');
+                }
             }
+            setProjectLoaded(true);
         }
     };
     
