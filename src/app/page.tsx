@@ -82,8 +82,8 @@ export default function LandingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold ">VS Code ext</h3>
-          <p className="mt-2 text-slate-400">Integrated with VS Code, All AI features are integrated with VS Code editor extension.</p>
+          <h3 className="text-xl font-semibold ">VS Code Integrated</h3>
+          <p className="mt-2 text-slate-400">All AI features are integrated with VS Code editor extension.</p>
         </div>
       </div>
     </div>

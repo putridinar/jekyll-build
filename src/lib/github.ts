@@ -95,46 +95,53 @@ export async function getInstallationAccessToken(installationId: string): Promis
 /**
  * A generic helper to make authenticated requests to the GitHub API.
  * It now takes an `installationId` and handles fetching the access token internally.
+ * --- DITAMBAHKAN LOGIKA RETRY ---
  */
-async function githubApiRequest(url: string, installationId: string, options: RequestInit = {}) {
+async function githubApiRequest(url: string, installationId: string, options: RequestInit = {}, retries = 3) {
     const accessToken = await getInstallationAccessToken(installationId);
 
-    const response = await fetch(`${GITHUB_API_URL}${url}`, {
-        ...options,
-        headers: {
-            ...options.headers,
-            'Authorization': `token ${accessToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-        },
-    });
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(`${GITHUB_API_URL}${url}`, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': `token ${accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'X-GitHub-Api-Version': '2022-11-28',
+                },
+            });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: response.statusText }));
-        if (response.status === 404) {
-             const notFoundMessage = `Resource not found at GitHub. Please check your settings and repo permissions. (URL: ${url})`;
-             const notFoundError = new Error(notFoundMessage);
-             (notFoundError as any).status = 404;
-             throw notFoundError;
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                // Jika errornya bukan karena masalah server atau rate limit, jangan coba lagi
+                if (response.status < 500 && response.status !== 429) {
+                    throw new Error(`GitHub API Error: ${errorData.message} (Status: ${response.status})`);
+                }
+                // Jika ini percobaan terakhir, lempar error
+                if (i === retries - 1) {
+                   throw new Error(`GitHub API Error after ${retries} retries: ${errorData.message} (Status: ${response.status})`);
+                }
+                 // Tunggu sebentar sebelum mencoba lagi
+                await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+                continue; // Lanjut ke percobaan berikutnya
+            }
+
+            if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+                return null;
+            }
+
+            return response.json(); // Berhasil, kembalikan hasil
+        } catch (error: any) {
+            // Jika ini percobaan terakhir atau bukan error jaringan, lempar error
+            if (i === retries - 1 || !error.cause?.code?.includes('UND_ERR')) {
+                console.error(`Final attempt failed for ${url}:`, error);
+                throw error;
+            }
+            console.warn(`Attempt ${i + 1} failed for ${url}. Retrying...`);
+            await new Promise(res => setTimeout(res, 1000 * (i + 1))); // Tunggu sebelum coba lagi
         }
-        if (response.status === 422) { // Entitas yang tidak dapat diproses - seringkali untuk file/commit kosong
-             const validationError = new Error(`Kesalahan Validasi dari GitHub: ${errorData.message} (URL: ${url})`);
-             (validationError as any).status = 422;
-             throw validationError;
-        }
-         if (response.status === 409) { // Konflik - seringkali untuk SHA cabang yang usang
-             const conflictError = new Error(`Kesalahan API GitHub: ${errorData.message} (Status: ${response.status}, URL: ${url})`);
-             (conflictError as any).status = 409;
-             throw conflictError;
-        }
-        throw new Error(`Kesalahan API GitHub: ${errorData.message} (Status: ${response.status}, URL: ${url})`);
     }
-
-    if (response.status === 204 || response.headers.get('Content-Length') === '0') {
-        return null;
-    }
-
-    return response.json();
 }
 
 /**

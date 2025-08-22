@@ -758,6 +758,86 @@ export async function cloneRepository() {
 }
 
 /**
+ * Melakukan clone ulang (force clone) dari repositori GitHub dan menimpa workspace yang ada.
+ * Ini memastikan data di editor selalu yang terbaru dari repo.
+ */
+export async function forceCloneAndSaveWorkspace(workspaceId: string, repoFullName: string, branch: string) {
+    try {
+        const userId = await getUserId();
+        if (!adminDb) throw new Error('Firestore not initialized');
+
+        const settingsResult = await getSettings();
+        if (!settingsResult.success || !settingsResult.data?.installationId) {
+            throw new Error('GitHub connection details not found.');
+        }
+        const installationId = settingsResult.data.installationId;
+
+        // 1. Lakukan clone dari GitHub
+        const treeItems = await getRepoTree(repoFullName, branch, installationId);
+        
+        const fileContents: { [key: string]: string } = {};
+        const fileStructure: any[] = [];
+        const structureMap: { [key: string]: any } = {};
+        const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+
+        for (const item of treeItems) {
+            const isImage = imageExtensions.some(ext => item.path.toLowerCase().endsWith(ext));
+            if (isImage) continue;
+
+            if (item.type === 'blob') {
+                const fileData = await getFileContent(repoFullName, item.sha, installationId);
+                if (fileData.encoding === 'base64') {
+                    fileContents[item.path] = Buffer.from(fileData.content, 'base64').toString('utf-8');
+                }
+            }
+            
+            const pathParts = item.path.split('/');
+            let currentLevel = fileStructure;
+            for (let i = 0; i < pathParts.length; i++) {
+                const part = pathParts[i];
+                const currentPath = pathParts.slice(0, i + 1).join('/');
+                let node = structureMap[currentPath];
+                if (!node) {
+                    node = {
+                        name: part,
+                        path: currentPath,
+                        type: (i === pathParts.length - 1 && item.type === 'blob') ? 'file' : 'folder',
+                    };
+                    if (node.type === 'folder') node.children = [];
+                    structureMap[currentPath] = node;
+                    currentLevel.push(node);
+                }
+                if (node.type === 'folder') currentLevel = node.children!;
+            }
+        }
+        
+        // 2. Siapkan data untuk disimpan
+        const freshWorkspaceState = {
+            name: repoFullName.split('/')[1] || 'Cloned Workspace',
+            githubRepo: repoFullName,
+            githubBranch: branch,
+            fileStructure,
+            fileContents,
+            activeFile: 'index.html', // Selalu mulai dari index.html
+            savedAt: FieldValue.serverTimestamp(),
+        };
+
+        // 3. Timpa data di Firestore
+        const workspaceRef = adminDb.collection('users').doc(userId).collection('workspaces').doc(workspaceId);
+        await workspaceRef.set(freshWorkspaceState, { merge: true });
+
+        // 4. Pastikan workspace ini aktif
+        await setActiveWorkspace(workspaceId);
+
+        return { success: true };
+
+    } catch (error: any) {
+        console.error("Error during force clone:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Mengambil daftar semua workspace milik pengguna. (Fitur Pro)
  */
 export async function getWorkspaces() {
@@ -905,7 +985,7 @@ export async function createWorkspace(repoFullName: string, branch: string) {
         // Buat dokumen baru di koleksi workspaces
         const newWorkspaceRef = adminDb.collection('users').doc(userId).collection('workspaces').doc();
         await newWorkspaceRef.set({
-            name: repoFullName.split('/')[1] || 'Workspace Baru',
+            name: repoFullName.split('/')[1] || 'New Workspace',
             githubRepo: repoFullName,
             githubBranch: branch,
             fileStructure,
@@ -936,286 +1016,4 @@ export async function setActiveWorkspace(workspaceId: string) {
     const settingsRef = adminDb.collection('users').doc(userId).collection('settings').doc('github');
     await settingsRef.set({ activeWorkspaceId: workspaceId }, { merge: true });
     return { success: true };
-}
-
-const initialFileStructure: FileNode[] = [
-  {
-    name: '_layouts',
-    path: '_layouts',
-    type: 'folder',
-    children: [
-      {name: 'default.html', path: '_layouts/default.html', type: 'file'},
-      {name: 'post.html', path: '_layouts/post.html', type: 'file'},
-    ],
-  },
-  {
-    name: '_includes',
-    path: '_includes',
-    type: 'folder',
-    children: [
-      {name: 'header.html', path: '_includes/header.html', type: 'file'},
-      {name: 'footer.html', path: '_includes/footer.html', type: 'file'},
-    ],
-  },
-  {
-    name: '_posts',
-    path: '_posts',
-    type: 'folder',
-    children: [
-      {
-        name: '2024-01-01-welcome-to-jekyll.md',
-        path: '_posts/2024-01-01-welcome-to-jekyll.md',
-        type: 'file',
-      },
-    ],
-  },
-  {
-    name: '_data',
-    path: '_data',
-    type: 'folder',
-    children: [{name: 'navigation.yml', path: '_data/navigation.yml', type: 'file'}],
-  },
-  {
-    name: 'assets',
-    path: 'assets',
-    type: 'folder',
-    children: [
-      {
-        name: 'css',
-        path: 'assets/css',
-        type: 'folder',
-        children: [{name: 'style.css', path: 'assets/css/style.css', type: 'file'}],
-      },
-      {
-        name: 'images',
-        path: 'assets/images',
-        type: 'folder',
-        children: [{name: '.gitkeep', path: 'assets/images/.gitkeep', type: 'file'}],
-      },
-      {
-        name: 'js',
-        path: 'assets/js',
-        type: 'folder',
-        children: [{name: 'script.js', path: 'assets/js/script.js', type: 'file'}],
-      },
-    ],
-  },
-  {name: '_config.yml', path: '_config.yml', type: 'file'},
-  {name: 'index.html', path: 'index.html', type: 'file'},
-  {name: 'Gemfile', path: 'Gemfile', type: 'file'},
-];
-
-const initialFileContents: {[key: string]: string} = {
-  '_config.yml': `title: My Jekyll Site
-email: your-email@example.com
-description: >- # this means to ignore newlines until "baseurl:"
-baseurl: "" # subpath situs Anda, mis. /blog
-url: "" # nama host & protokol dasar untuk situs Anda, mis. http://example.com
-twitter_username: jekyllrb
-github_username:  jekyll
-
-permalink: /post/:title
-
-defaults:
-- scope:
-    type: posts
-  values:
-    layout: post
-
-- scope:
-    type: pages
-  values:
-    layout: page
-
-# Pengaturan Markdown
-markdown: kramdown
-
-# Pengaturan build
-plugins:
-  - jekyll-feed
-  - jekyll-sitemap
-
-# Kecualikan dari pemrosesan.
-# Item berikut tidak akan diproses, secara default.
-# Setiap item yang tercantum di bawah kunci "exclude:" di sini akan secara otomatis ditambahkan ke
-# daftar internal "default_excludes".
-#
-# Item yang dikecualikan dapat diproses dengan secara eksplisit mencantumkan direktori atau
-# path file entri dalam daftar "include:".
-#
-# exclude:
-#   - .sass-cache/
-#   - .jekyll-cache/
-#   - gemfiles/
-#   - Gemfile
-#   - Gemfile.lock
-#   - node_modules/
-#   - vendor/bundle/
-#   - vendor/cache/
-#   - vendor/gems/
-#   - vendor/ruby/
-`,
-  'index.html': `---
-layout: default
-title: Welcome to Your New Blog!
-permalink: /
----
-
-<h1 class="flex justify-center items-center mb-6 text-3xl font-bold text-center">Hello Broo..!</h1>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-
-  {% for post in site.posts %}
-    <a href="{{ post.url | relative_url }}" class="group block rounded-lg overflow-hidden bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 dark:bg-slate-800">
-      
-      {% if post.image %}
-        <img src="{{ post.image | relative_url }}" alt="{{ post.title }}" class="w-full h-48 object-cover">
-      {% endif %}
-
-      <div class="p-6">
-        <h2 class="mb-2 text-xl font-bold tracking-tight text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors">
-          {{ post.title }}
-        </h2>
-        
-        <p class="font-normal text-slate-600 dark:text-slate-400 mb-4">
-          {{ post.excerpt | strip_html | truncatewords: 20 }}
-        </p>
-
-        <p class="text-sm text-slate-500 dark:text-slate-500">
-          {{ post.date | date: "%b %d, %Y" }}
-        </p>
-      </div>
-
-    </a>
-  {% endfor %}
-
-</div>
-`,
-  '_layouts/default.html': `<!DOCTYPE html>
-<html lang="{{ page.lang | default: site.lang | default: "id-ID" }}" class="h-full">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.title | escape }} | {{ site.title | escape }}</title>
-    <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | normalize_whitespace | truncate: 160 | escape }}">
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
-    <link rel="canonical" href="{{ page.url | replace:'index.html','' | absolute_url }}">
-  </head>
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
-    {% include header.html %}
-    
-    <main class="page-content flex-grow" aria-label="Content">
-      <div class="container mx-auto px-4 py-8">
-        {{ content }}
-      </div>
-    </main>
-    
-    {% include footer.html %}
-  </body>
-</html>
-`,
-  '_layouts/post.html': `---
-layout: default
----
-<article class="post h-entry px-4 py-8 max-w-3xl mx-auto" itemscope itemtype="http://schema.org/BlogPosting">
-
-        <h2 class="mb-4 text-lg font-bold tracking-tight text-slate-900 dark:text-white transition-colors">
-          {{ page.title }}
-        </h2>
-
-      {% if page.image %}
-        <img src="{{ page.image | relative_url }}" alt="{{ page.title }}" class="w-full h-58 rounded-md shadow object-cover">
-      {% endif %}
-
-  <div class="post-content e-content prose prose-lg dark:prose-invert" itemprop="articleBody">
-    {{ content }}
-  </div>
-  
-  <div class="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
-    Diposting pada <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">{{ page.date | date: "%b %-d, %Y" }}</time>
-    {%- if page.author -%}
-      oleh <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">{{ page.author }}</span></span>
-    {%- endif -%}
-    {%- if page.tags and page.tags.size > 0 -%}
-      <br>
-      Kategori:
-      {%- for tag in page.tags -%}
-        <a href="/tags/{{ tag | slugify }}/" class="text-purple-600 dark:text-purple-400 hover:underline">#{{ tag }}</a>{%- unless forloop.last -%},{%- endunless -%}
-      {%- endfor -%}
-    {%- endif -%}
-  </div>
-
-  <a class="u-url" href="{{ page.url | relative_url }}" hidden></a>
-</article>
-`,
-  '_includes/header.html': `<header class="bg-white dark:bg-gray-800 shadow-md py-4">
-  <div class="container mx-auto px-4 flex justify-between items-center">
-    <a class="text-2xl font-bold text-gray-900 dark:text-white" href="{{ '/' | relative_url }}">{{ site.title | escape }}</a>
-    
-    <nav class="site-nav">
-      <div class="hidden md:block">
-        {%- for item in site.data.navigation -%}
-          <a class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md font-medium" href="{{ item.url | relative_url }}">{{ item.title }}</a>
-        {%- endfor -%}
-      </div>
-      </nav>
-  </div>
-</header>
-`,
-  '_includes/footer.html': `<footer class="w-full bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-700">
-    <div class="container mx-auto py-5 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-      <p>&copy; {% capture current_year %}{{ 'now' | date: '%Y' }}{% endcapture %}{{ current_year }} {{ site.title }} <br /> Dibuat dengan <a href="https://jekyll-buildr.vercel.app/" target="_blank">Jekyll-Buildr</a> by Daffa</p>
-    </div>
-  </footer>
-`,
-  '_posts/2024-01-01-welcome-to-jekyll.md': `---
-title: "Welcome to Jekyll!"
-image: "https://placehold.co/600x400?text=Jekyll-World"
-date: 2024-01-01 00:00:00 -0000
-categories: jekyll update
----
-You’ll find this post in your \`_posts\` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run \`bundle exec jekyll serve\`, which launches a web server and auto-regenerates your site when a file is updated.
-
-To add new posts, simply add a file in the \`_posts\` directory that follows the convention \`YYYY-MM-DD-name-of-post.ext\` and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.
-`,
-  '_data/navigation.yml': `- title: Home
-  url: /
-- title: About
-  url: /about/
-`,
-  'assets/css/style.css': `/* Add your Tailwind CSS directives here, or other custom CSS */
-`,
-  'assets/js/script.js': `/* Add your Javascript code here */
-`,
-  'Gemfile': `source "https://rubygems.org"
-
-gem "jekyll"
-gem "jekyll-feed"
-gem "jekyll-sitemap"
-`,
-};
-
-/**
- * Membuat workspace default untuk freeUser jika belum ada.
- * Fungsi ini akan dipanggil oleh getWorkspaceState jika tidak ada ID yang diberikan.
- */
-export async function createDefaultWorkspaceIfNeeded(userId: string) {
-    if (!adminDb) {
-        throw new Error('Firestore not initialized');
-    }
-    const defaultWsRef = adminDb.collection('users').doc(userId).collection('workspaces').doc('default');
-    const docSnap = await defaultWsRef.get();
-    
-    if (!docSnap.exists) {
-        await defaultWsRef.set({
-            name: 'Project Default',
-            githubRepo: null, // Proyek default tidak terhubung ke GitHub
-            githubBranch: null,
-            fileStructure: initialFileStructure,
-            fileContents: initialFileContents,
-            activeFile: 'index.html', // File default yang terbuka
-            createdAt: FieldValue.serverTimestamp(),
-        });
-    }
-    return 'default';
 }
