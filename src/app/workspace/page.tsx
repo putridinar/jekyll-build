@@ -349,98 +349,103 @@ function HomePageContent() {
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
   const [content, setContent] = React.useState('');
 
+
   React.useEffect(() => {
     const loadProject = async () => {
-        if (user && !projectLoaded) {
-            setLoadingState('loading');
+        // Jangan lakukan apa-apa sampai user dan status projectLoaded jelas
+        if (!user || projectLoaded) {
+            return;
+        }
+
+        setLoadingState('loading');
+        // Tandai bahwa proses loading sudah dimulai untuk mencegah eksekusi ganda
+        setProjectLoaded(true); 
+        
+        const settingsResult = await getSettings();
+        const settingsData = settingsResult.success ? settingsResult.data : null;
+
+        // ATURAN #1: Jika user punya koneksi GitHub...
+        if (settingsData?.installationId) {
+            const workspaceIdToLoad = settingsData.activeWorkspaceId;
+
+            if (!workspaceIdToLoad) {
+                // Jika tidak ada workspace aktif, jangan buat default. Tendang ke dasbor.
+                toast({
+                    title: "Pilih Workspace",
+                    description: "Silakan pilih repositori dari dasbor untuk mulai bekerja.",
+                });
+                router.push('/dashboard');
+                return;
+            }
             
-            const settingsResult = await getSettings();
-            const settingsData = settingsResult.success ? settingsResult.data : null;
-            const workspaceIdToLoad = settingsData?.activeWorkspaceId;
+            setActiveWorkspaceId(workspaceIdToLoad);
+            const workspaceDataResult = await getWorkspaceState(workspaceIdToLoad);
 
-            if (settingsData?.installationId) {
-                if (!workspaceIdToLoad) {
-                    toast({
-                        title: "Pilih Workspace",
-                        description: "Silakan pilih repositori dari dasbor untuk mulai bekerja.",
-                    });
-                    router.push('/dashboard');
-                    return;
-                }
-                
-                setActiveWorkspaceId(workspaceIdToLoad);
-                const workspaceDataResult = await getWorkspaceState(workspaceIdToLoad);
-
-                if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
-                    const { data } = workspaceDataResult;
-                    setFileStructure(data.fileStructure);
-                    setActiveFile(data.activeFile);
-                    setFileContents(data.fileContents);
-                    setExpandedFolders(new Set(data.expandedFolders || []));
-                    setContent(data.fileContents[data.activeFile] ?? '');
-                    setLoadingState('loaded');
-                } else {
-                    setLoadingState('cloning');
-                    const cloneResult = await cloneRepository();
-                    if (cloneResult.success && cloneResult.fileStructure && cloneResult.fileContents) {
-                        
-                        // --- PERBAIKAN  ---
-                        // Memastikan githubRepo dan githubBranch ikut tersimpan
-                        const clonedState = {
-                            name: settingsData?.githubRepo.split('/')[1] || 'Cloned Workspace',
-                            githubRepo: settingsData?.githubRepo, // Tambahkan
-                            githubBranch: settingsData?.githubBranch, // Tambahkan
-                            fileStructure: cloneResult.fileStructure,
-                            activeFile: 'index.html',
-                            fileContents: cloneResult.fileContents,
-                            expandedFolders: Array.from(new Set(['_layouts', '_includes', '_posts', '_data', 'assets', 'assets/css', 'assets/images', 'assets/js'])),
-                        };
-                        // --- AKHIR PERBAIKAN ---
-
-                        await saveWorkspaceState(workspaceIdToLoad, clonedState);
-                        setFileStructure(clonedState.fileStructure);
-                        setFileContents(clonedState.fileContents);
-                        setActiveFile(clonedState.activeFile);
-                        setContent(clonedState.fileContents[clonedState.activeFile] ?? '');
-                        setLoadingState('loaded');
-                    } else {
-                        toast({ title: 'Gagal Clone Repositori', description: cloneResult.error, variant: 'destructive' });
-                        setLoadingState('error');
-                    }
-                }
+            if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
+                // Ditemukan di Firestore, muat progres terakhir.
+                const { data } = workspaceDataResult;
+                setFileStructure(data.fileStructure);
+                setActiveFile(data.activeFile);
+                setFileContents(data.fileContents);
+                setExpandedFolders(new Set(data.expandedFolders || []));
+                setContent(data.fileContents[data.activeFile] ?? '');
             } else {
-                // ... (logika untuk default workspace jika GitHub tidak terhubung)
-                setActiveWorkspaceId('default');
-                const workspaceDataResult = await getWorkspaceState('default');
-                 if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
-                    const { data } = workspaceDataResult;
-                    setFileStructure(data.fileStructure);
-                    setActiveFile(data.activeFile);
-                    setFileContents(data.fileContents);
-                    setExpandedFolders(new Set(data.expandedFolders || []));
-                    setContent(data.fileContents[data.activeFile] ?? '');
-                } else {
-                    const defaultState = {
-                        name: 'Default Template',
-                        fileStructure: initialFileStructure,
+                // Tidak ada di Firestore (pertama kali buka), lakukan clone.
+                setLoadingState('cloning');
+                const cloneResult = await cloneRepository();
+                if (cloneResult.success && cloneResult.fileStructure && cloneResult.fileContents) {
+                    const clonedState = {
+                        name: settingsData?.githubRepo?.split('/')[1] || 'Cloned Workspace',
+                        githubRepo: settingsData?.githubRepo,
+                        githubBranch: settingsData?.githubBranch,
+                        fileStructure: cloneResult.fileStructure,
                         activeFile: 'index.html',
-                        fileContents: initialFileContents,
+                        fileContents: cloneResult.fileContents,
                         expandedFolders: Array.from(new Set(['_layouts', '_includes', '_posts', '_data', 'assets', 'assets/css', 'assets/images', 'assets/js'])),
                     };
-                    await saveWorkspaceState('default', defaultState);
-                    setFileStructure(defaultState.fileStructure);
-                    setFileContents(defaultState.fileContents);
-                    setActiveFile(defaultState.activeFile);
-                    setContent(defaultState.fileContents[defaultState.activeFile] ?? '');
+                    await saveWorkspaceState(workspaceIdToLoad, clonedState);
+                    setFileStructure(clonedState.fileStructure);
+                    setFileContents(clonedState.fileContents);
+                    setActiveFile(clonedState.activeFile);
+                    setContent(clonedState.fileContents[clonedState.activeFile] ?? '');
+                } else {
+                    toast({ title: 'Gagal Clone Repositori', description: cloneResult.error, variant: 'destructive' });
+                    setLoadingState('error');
+                    return; // Hentikan jika clone gagal
                 }
-                setLoadingState('loaded');
             }
-            setProjectLoaded(true);
+        } else {
+            // ATURAN #2: Jika TIDAK ADA koneksi GitHub, barulah kita urus default workspace.
+            setActiveWorkspaceId('default');
+            const workspaceDataResult = await getWorkspaceState('default');
+             if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
+                const { data } = workspaceDataResult;
+                setFileStructure(data.fileStructure);
+                setActiveFile(data.activeFile);
+                setFileContents(data.fileContents);
+                setExpandedFolders(new Set(data.expandedFolders || []));
+                setContent(data.fileContents[data.activeFile] ?? '');
+            } else {
+                const defaultState = {
+                    name: 'Default Template',
+                    fileStructure: initialFileStructure,
+                    activeFile: 'index.html',
+                    fileContents: initialFileContents,
+                    expandedFolders: Array.from(new Set(['_layouts', '_includes', '_posts', '_data', 'assets', 'assets/css', 'assets/images', 'assets/js'])),
+                };
+                await saveWorkspaceState('default', defaultState);
+                setFileStructure(defaultState.fileStructure);
+                setFileContents(defaultState.fileContents);
+                setActiveFile(defaultState.activeFile);
+                setContent(defaultState.fileContents[defaultState.activeFile] ?? '');
+            }
         }
+
+        setLoadingState('loaded');
     };
     
     loadProject();
-  }, [user, projectLoaded, toast, router]);
+  }, [user, projectLoaded, router, toast]);
   
   // Pembaruan fungsi debouncedSave
   const debouncedSave = useDebouncedCallback(async (stateToSave) => {

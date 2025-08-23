@@ -282,24 +282,21 @@ function SettingsPageContent() {
                                 </>
                                 </div>
                             </CardContent>
+                            <CardFooter className="border-t mx-auto pt-6">
                                  {user.role === 'proUser' && (
-                                    <div>
-                                        <h3 className="text-sm font-medium">Subscription</h3>
-                                        <Button variant="outline" size="sm" className="mt-1" asChild>
+                                        <Button variant="outline" size="sm" className="w-full" asChild>
                                             <a href={PAYPAL_MANAGE_SUBSCRIPTION_URL} target="_blank" rel="noopener noreferrer">
                                                 Manage Subscription <ExternalLink className="ml-2 h-4 w-4" />
                                             </a>
                                         </Button>
-                                    </div>
                                 )}
                         {user.role === 'freeUser' && (
-                            <CardFooter className="border-t pt-6">
-                                    <Button className="w-full" onClick={() => setUpgradeModalOpen(true)}>
+                                    <Button className="w-full" size="sm" onClick={() => setUpgradeModalOpen(true)}>
                                         <Crown className="mr-2 h-4 w-4" />
                                         Upgrade to Pro
                                     </Button>
-                            </CardFooter>
                         )}
+                            </CardFooter>
                         </Card>
                         <Card className="md:col-span-2 flex flex-col">
                             <CardHeader>

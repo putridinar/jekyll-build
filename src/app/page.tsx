@@ -13,10 +13,11 @@ export default function LandingPage() {
       <div className="flex items-center justify-between h-16">
         <Link href="/" className="flex gap-1 items-center text-2xl font-bold text-indigo-600 tracking-tight">
                 <Icons.logo className="h-8 w-8" />Jekyll Buildr</Link> 
-        <Link href="/login"
-           className="btn-shine inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition">
-          Sign In
-        </Link> 
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="btn-shine inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition">
+                Sign In
+              </Link> 
+            </div>
       </div>
     </nav>
   </header>

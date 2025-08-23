@@ -4,7 +4,7 @@
 import { adminDb } from '@/lib/firebase-admin';
 import { getUserId } from '@/lib/auth-utils';
 import { FieldValue } from 'firebase-admin/firestore';
-import { commitFileToRepo, createBranch, createPullRequest, getBranchSha, getRepoTree, getFileContent, } from '@/lib/github';
+import { commitFileToRepo, createBranch, createPullRequest, getBranchSha, getRepoTree, getFileContent, ensureDirExists } from '@/lib/github';
 import { revalidatePath } from 'next/cache';
 import sharp from 'sharp';
 import { FileNode } from '@/types';
@@ -91,8 +91,7 @@ export async function saveContent(contentType: string, data: any) {
 /**
  * Publishes content to a GitHub repository.
  * It first saves the content as a draft, then commits it to GitHub.
- * It now compresses AI-generated images before committing and validates file size.
- * If compression isn't enough, it will resize the image.
+ * --- FUNGSI YANG DIPERBAIKI ---
 **/
 export async function publishContent(contentType: string, data: any) {
     try {
@@ -109,6 +108,12 @@ export async function publishContent(contentType: string, data: any) {
         if (!settings?.githubRepo || !settings?.githubBranch || !settings?.installationId) {
             throw new Error('GitHub repository details are incomplete. Please check your settings.');
         }
+
+        // --- AWAL PERBAIKAN ---
+        // Langkah 1: Pastikan direktori _posts dan assets/images ada sebelum melakukan commit.
+        await ensureDirExists(settings.githubRepo, settings.installationId, '_posts', settings.githubBranch);
+        await ensureDirExists(settings.githubRepo, settings.installationId, 'assets/images', settings.githubBranch);
+        // --- AKHIR PERBAIKAN ---
 
         let finalContent = data.content;
         let finalMainImage = data.mainImage;
@@ -167,7 +172,6 @@ image: "${finalMainImage || ''}"
             branch: settings.githubBranch
         });
         
-        // Update the post in Firestore with the final image path
         if (finalMainImage !== data.mainImage) {
             const userId = await getUserId();
             const docRef = getUserContentDoc(userId, contentType, data.slug);

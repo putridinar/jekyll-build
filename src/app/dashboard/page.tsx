@@ -242,8 +242,11 @@ export default function DashboardPage() {
 
     <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
       <div className="container px-6 mx-auto max-w-5xl py-5 opacity-90">
-        <div className="mb-8 mt-14 flex justify-between items-start">
+        <div className="mb-8 mt-14 flex justify-between items-center">
             <h1 className="text-4xl font-bold font-headline">Welcome, {user?.displayName}!</h1>
+               <Link href="/pricing" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                  Pricing
+              </Link>
         </div>
         <p className="mb-8 text-muted-foreground">Select a project to start working on or create a new one.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

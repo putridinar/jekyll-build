@@ -94,8 +94,7 @@ export async function getInstallationAccessToken(installationId: string): Promis
 
 /**
  * A generic helper to make authenticated requests to the GitHub API.
- * It now takes an `installationId` and handles fetching the access token internally.
- * --- DITAMBAHKAN LOGIKA RETRY ---
+ * --- FUNGSI INI YANG DIPERBAIKI TOTAL ---
  */
 async function githubApiRequest(url: string, installationId: string, options: RequestInit = {}, retries = 3) {
     const accessToken = await getInstallationAccessToken(installationId);
@@ -114,15 +113,27 @@ async function githubApiRequest(url: string, installationId: string, options: Re
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: response.statusText }));
-                // Jika errornya bukan karena masalah server atau rate limit, jangan coba lagi
+                
+                // --- AWAL PERBAIKAN UTAMA ---
+                // Buat satu objek Error yang konsisten
+                const error = new Error(
+                    `GitHub API Error: ${errorData.message || 'Unknown Error'} (Status: ${response.status}, URL: ${url})`
+                );
+                // Selalu lampirkan status code ke objek Error
+                (error as any).status = response.status;
+                // --- AKHIR PERBAIKAN UTAMA ---
+
+                // Jika errornya bukan karena masalah server atau rate limit, langsung lempar.
                 if (response.status < 500 && response.status !== 429) {
-                    throw new Error(`GitHub API Error: ${errorData.message} (Status: ${response.status})`);
+                    throw error;
                 }
-                // Jika ini percobaan terakhir, lempar error
+                
+                // Jika ini percobaan terakhir untuk error server/rate limit, lempar.
                 if (i === retries - 1) {
-                   throw new Error(`GitHub API Error after ${retries} retries: ${errorData.message} (Status: ${response.status})`);
+                   throw error;
                 }
-                 // Tunggu sebentar sebelum mencoba lagi
+
+                // Tunggu sebentar sebelum mencoba lagi untuk error server/rate limit
                 await new Promise(res => setTimeout(res, 1000 * (i + 1)));
                 continue; // Lanjut ke percobaan berikutnya
             }
@@ -133,13 +144,16 @@ async function githubApiRequest(url: string, installationId: string, options: Re
 
             return response.json(); // Berhasil, kembalikan hasil
         } catch (error: any) {
-            // Jika ini percobaan terakhir atau bukan error jaringan, lempar error
+            // Jika ini percobaan terakhir atau bukan error jaringan (SocketError), lempar error
             if (i === retries - 1 || !error.cause?.code?.includes('UND_ERR')) {
+                // Jangan lempar error jika itu 404 yang sudah kita beri status
+                if (error.status === 404) throw error;
+                
                 console.error(`Final attempt failed for ${url}:`, error);
                 throw error;
             }
             console.warn(`Attempt ${i + 1} failed for ${url}. Retrying...`);
-            await new Promise(res => setTimeout(res, 1000 * (i + 1))); // Tunggu sebelum coba lagi
+            await new Promise(res => setTimeout(res, 1000 * (i + 1)));
         }
     }
 }
