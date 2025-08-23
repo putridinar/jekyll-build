@@ -247,30 +247,6 @@ function SettingsPageContent() {
                                         <CardDescription>{user.email}</CardDescription>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-2">
-                                    <>
-                                {githubPagesUrl && (
-                                    <div>
-                                        <Button variant="outline" size="sm" className="mt-1" asChild>
-                                            <a href={githubPagesUrl} target="_blank" rel="noopener noreferrer">
-                                                View your Pages <ExternalLink className="ml-2 h-4 w-4" />
-                                            </a>
-                                        </Button>
-                                    </div>
-                                )}
-                                {githubRepoUrl && (
-                                    <div>
-                                        <Button variant="outline" size="sm" className="mt-1" asChild>
-                                            <a href={githubRepoUrl} target="_blank" rel="noopener noreferrer">
-                                                View Repositories <ExternalLink className="ml-2 h-4 w-4" />
-                                            </a>
-                                        </Button>
-                                    </div>
-                                )}
-                                </>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
                                 <div>
                                     <h3 className="text-sm font-medium">Account Status</h3>
                                     {user.role === 'proUser' ? (
@@ -281,6 +257,31 @@ function SettingsPageContent() {
                                         <Badge variant="secondary" className="mt-1">Free User</Badge>
                                     )}
                                 </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex flex-row justify-between gap-2">
+                                    <>
+                                {githubPagesUrl && (
+                                    <div>
+                                        <Button variant="outline" size="sm" className="mt-1" asChild>
+                                            <a href={githubPagesUrl} target="_blank" rel="noopener noreferrer">
+                                                View Pages <ExternalLink className="ml-2 h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                    </div>
+                                )}
+                                {githubRepoUrl && (
+                                    <div>
+                                        <Button variant="outline" size="sm" className="mt-1" asChild>
+                                            <a href={githubRepoUrl} target="_blank" rel="noopener noreferrer">
+                                                View Repos <ExternalLink className="ml-2 h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                    </div>
+                                )}
+                                </>
+                                </div>
+                            </CardContent>
                                  {user.role === 'proUser' && (
                                     <div>
                                         <h3 className="text-sm font-medium">Subscription</h3>
@@ -291,7 +292,6 @@ function SettingsPageContent() {
                                         </Button>
                                     </div>
                                 )}
-                            </CardContent>
                         {user.role === 'freeUser' && (
                             <CardFooter className="border-t pt-6">
                                     <Button className="w-full" onClick={() => setUpgradeModalOpen(true)}>

@@ -8,7 +8,7 @@ import { getWorkspaces, setActiveWorkspace, deleteWorkspace, createWorkspace, ge
 import { LoadingScreen } from '@/components/app/LoadingScreen';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight, Loader2, Trash2, Lock, Terminal } from 'lucide-react';
+import { PlusCircle, ArrowRight, Loader2, Trash2, Lock, Terminal, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Github } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils'; // Impor cn untuk classname dinamis
+import { Icons } from '@/components/icons';
 
 const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'your-app-name';
 const GITHUB_APP_URL = `https://github.com/apps/${appName}/installations/new`;
@@ -219,19 +220,30 @@ export default function DashboardPage() {
   const defaultWorkspace: Workspace = { id: 'default', name: 'Default Project' };
 
   return (
-    <div className="min-h-screen bg-muted/20">
-    <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
-      <div className="container px-6 mx-auto max-w-5xl py-5 opacity-90">
-        <div className="mb-8 flex justify-between items-start">
-            <h1 className="text-4xl font-bold font-headline">Welcome, {user?.displayName}!</h1>
+    <div className="relative min-h-screen bg-muted/20">
+  <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg shadow-md">
+    <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between h-16">
+        <Link href="/" className="flex gap-1 items-center text-1xl font-bold text-indigo-600 tracking-tight">
+                <Icons.logo className="h-8 w-8" />
+        </Link>
           <div className='flex items-center gap-4'>
-          <Link href='/settings'>
-            <Button variant="outline">Settings</Button>
-          </Link>
-          <Button onClick={() => { logout(); router.push('/login'); }} variant="outline">
+        <Link href="/settings"
+           className="btn-shine btn-sm inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition">
+          <Settings />
+        </Link> 
+          <Button onClick={() => { logout(); router.push('/login'); }} className='btn-shine' variant="outline">
             Logout
           </Button>
           </div>
+      </div>
+    </nav>
+  </header>
+
+    <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
+      <div className="container px-6 mx-auto max-w-5xl py-5 opacity-90">
+        <div className="mb-8 mt-14 flex justify-between items-start">
+            <h1 className="text-4xl font-bold font-headline">Welcome, {user?.displayName}!</h1>
         </div>
         <p className="mb-8 text-muted-foreground">Select a project to start working on or create a new one.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -239,7 +251,7 @@ export default function DashboardPage() {
           {user?.role === 'proUser' && (
             <>
               {workspaces.map(ws => (
-                <Card key={ws.id} className={cn("relative cursor-pointer p-4 hover:border-primary transition-all")}>
+                <Card key={ws.id} className={cn("relative h-[202px] flex flex-grow flex-col cursor-pointer p-4 hover:border-primary transition-all")}>
                    <div onClick={() => handleWorkspaceClick(ws)}>
                     <CardHeader className="flex flex-row items-start justify-between">
                       <div>
@@ -277,7 +289,7 @@ export default function DashboardPage() {
                   </AlertDialog>
                 </Card>
               ))}
-               <Card className="relative flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary hover:text-primary transition-all cursor-pointer overflow-hidden">
+               <Card className="relative h-[202px] flex flex-grow p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary hover:text-primary transition-all cursor-pointer overflow-hidden">
                   <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                       <DialogTrigger asChild>
                           <Button variant="ghost" className="relative text-lg flex flex-col items-center justify-center hover:text-primary h-full w-full disabled:cursor-not-allowed" disabled={!settings.installationId}>
@@ -334,7 +346,7 @@ export default function DashboardPage() {
                   </Dialog>
                </Card>
                {!settings.installationId && (
-                <Card className="flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
+                <Card className="h-[202px] flex flex-grow p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
                   <div className="flex flex-col items-center justify-center h-full w-full text-center">
                     <p className="mb-4 text-muted-foreground">Connect your GitHub account to create new workspaces from your repositories.</p>
                     <Button asChild>
@@ -353,7 +365,7 @@ export default function DashboardPage() {
           {user?.role !== 'proUser' && (
             <>
               {freeUserWorkspace && (
-                <Card key={freeUserWorkspace.id} className={cn("cursor-pointer p-4 hover:border-primary transition-all relative")} onClick={() => handleWorkspaceClick(freeUserWorkspace)}>
+                <Card key={freeUserWorkspace.id} className={cn("cursor-pointer h-[202px] flex flex-grow flex-col p-4 hover:border-primary transition-all relative")} onClick={() => handleWorkspaceClick(freeUserWorkspace)}>
                   <CardHeader>
                     <CardTitle>{freeUserWorkspace.name}</CardTitle>
                     <CardDescription>Repo: {freeUserWorkspace.githubRepo}</CardDescription>
@@ -369,7 +381,7 @@ export default function DashboardPage() {
               )}
 
               {!hasGithubConnection && (
-                  <Card className="cursor-pointer p-4 hover:border-primary transition-all" onClick={() => handleWorkspaceClick(defaultWorkspace)}>
+                  <Card className="cursor-pointer h-[202px] flex flex-grow flex-col p-4 hover:border-primary transition-all" onClick={() => handleWorkspaceClick(defaultWorkspace)}>
                       <CardHeader>
                           <CardTitle>Default Project</CardTitle>
                           <CardDescription>Start with a local template (no GitHub connection).</CardDescription>
@@ -384,7 +396,7 @@ export default function DashboardPage() {
               )}
               
               {hasGithubConnection && !freeUserWorkspace && (
-                   <Card className="flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
+                   <Card className="h-[202px] flex flex-grow flex-col p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
                       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                           <DialogTrigger asChild>
                           <Button variant="ghost" className="flex flex-col items-center justify-center h-full w-full">
@@ -442,7 +454,7 @@ export default function DashboardPage() {
               )}
 
               {!hasGithubConnection && (
-                  <Card className="flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
+                  <Card className="h-[202px] flex flex-grow p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary transition-all cursor-pointer">
                       <div className="flex flex-col items-center justify-center h-full w-full text-center">
                           <p className="mb-4 text-muted-foreground">Connect your GitHub account to import your own repository.</p>
                           <Button asChild>
@@ -456,7 +468,7 @@ export default function DashboardPage() {
               )}
 
               <Card
-                className="relative flex p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary hover:text-primary transition-all cursor-pointer overflow-hidden"
+                className="relative h-[202px] flex flex-grow p-4 flex-col items-center justify-center border-2 border-dashed hover:border-primary hover:text-primary transition-all cursor-pointer overflow-hidden"
                 onClick={() => toast({ title: 'Pro Feature', description: 'Upgrade to Pro to create multiple workspaces from your GitHub repositories.' })}
               >
                 <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">

@@ -257,7 +257,7 @@ export function FileExplorer({
           setRenamingPath={setRenamingPath}
         />
       </nav>
-      <Link href='/dashboard' className='fixed md:relative md:w-72 bottom-0 w-80 flex justify-start gap-4 items-center px-4 min-h-14 border-t text-muted-foreground hover:bg-muted hover:text-foreground'>
+      <Link href='/dashboard' className='fixed md:relative md:w-72 bottom-0 w-80 flex justify-start gap-4 items-center px-4 min-h-14 border-t text-muted-foreground overflow-hidden hover:bg-muted hover:text-foreground'>
         <LayoutDashboard className="h-5 w-5" />
         <span>Back to Dashboard</span>
       </Link>
