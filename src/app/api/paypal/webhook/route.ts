@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { upgradeToPro } from '@/actions/user'; // Impor tindakan terpusat
 
-const isSandbox = process.env.PAYPAL_SANDBOX_ENABLED === 'true';
+const isSandbox = process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_ENABLED === 'true';
 const PAYPAL_API_URL = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
 const PAYPAL_CLIENT_ID = isSandbox ? process.env.PAYPAL_SANDBOX_CLIENT_ID : process.env.PAYPAL_LIVE_CLIENT_ID;
 const PAYPAL_CLIENT_SECRET = isSandbox ? process.env.PAYPAL_SANDBOX_CLIENT_SECRET : process.env.PAYPAL_LIVE_CLIENT_SECRET;
@@ -83,17 +83,18 @@ export async function POST(req: NextRequest) {
       const subscription = event.resource;
       const userId = subscription.custom_id;
       const subscriptionId = subscription.id;
+      const payerId = subscription.subscriber?.payer_id;
 
       if (!userId) {
         console.error('User ID (custom_id) not found in webhook payload');
         return NextResponse.json({ success: false, message: 'User ID not found.' }, { status: 400 });
       }
 
-      // Panggil tindakan terpusat untuk meningkatkan pengguna
-      const result = await upgradeToPro(userId, subscriptionId);
-
-      if (!result.success) {
-        console.error(`Failed to upgrade user ${userId}:`, result.error);
+      try {
+        // Panggil tindakan terpusat untuk meningkatkan pengguna
+        await upgradeToPro(userId, subscriptionId, payerId);
+      } catch (error: any) {
+        console.error(`Failed to upgrade user ${userId}:`, error.message);
         return NextResponse.json({ success: true, message: "Webhook received, but user upgrade failed." });
       }
     }

@@ -10,6 +10,8 @@ const PAYPAL_CLIENT_ID = isSandbox ? process.env.PAYPAL_SANDBOX_CLIENT_ID : proc
 const PAYPAL_CLIENT_SECRET = isSandbox ? process.env.PAYPAL_SANDBOX_CLIENT_SECRET : process.env.PAYPAL_LIVE_CLIENT_SECRET;
 const PAYPAL_PLAN_ID = (isSandbox ? process.env.PAYPAL_SANDBOX_PLAN_ID : process.env.PAYPAL_LIVE_PLAN_ID)?.trim();
 
+console.log("Using PayPal Plan ID:", PAYPAL_PLAN_ID);
+
 
 // Pembantu untuk mendapatkan token akses PayPal
 async function getPayPalAccessToken() {

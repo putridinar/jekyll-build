@@ -7,10 +7,10 @@ import { getUserId } from '@/lib/auth-utils';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // Tindakan ini menginisialisasi pengguna baru di Firestore.
-export async function initializeUser(userData: { uid: string, email?: string | null, displayName?: string | null, photoURL?: string | null }) {
+export async function initializeUser(userData: { uid: string, githubId: string, email?: string | null, displayName?: string | null, photoURL?: string | null }) {
     try {
         if (!adminDb) throw new Error('Firebase Admin not initialized');
-        const { uid, email, displayName, photoURL } = userData;
+        const { uid, email, displayName, githubId, photoURL } = userData;
 
         const userRef = adminDb.collection('users').doc(uid);
         
@@ -22,6 +22,7 @@ export async function initializeUser(userData: { uid: string, email?: string | n
 
         await userRef.set({
             uid,
+            githubId,
             email,
             displayName,
             photoURL,
@@ -96,26 +97,29 @@ export async function signOutUser() {
  * Fungsi ini dirancang untuk dipanggil dari lingkungan server yang aman (seperti penangan webhook)
  * dan tidak secara langsung sebagai tindakan server dari klien.
  */
-export async function upgradeToPro(userId: string, subscriptionId: string) {
+export async function upgradeToPro(userId: string, subscriptionId: string, payerId?: string) {
+    if (!userId || !subscriptionId) {
+        throw new Error('Invalid arguments');
+    }
+
     try {
-        if (!adminDb) {
-            throw new Error('Firebase Admin not initialized');
-        }
+        const userRef = adminDb?.collection('users').doc(userId);
         
-        const userRef = adminDb.collection('users').doc(userId);
-        
-        await userRef.update({ 
+        const dataToUpdate: { role: 'proUser'; paypalSubscriptionId: string; payerId?: string } = {
             role: 'proUser',
             paypalSubscriptionId: subscriptionId,
-            upgradedAt: FieldValue.serverTimestamp()
-        });
+        };
 
-        console.log(`User ${userId} upgraded to proUser with subscription ${subscriptionId}.`);
-        return { success: true };
+        if (payerId) {
+            dataToUpdate.payerId = payerId;
+        }
 
-    } catch (error: any) {
+        await userRef?.update(dataToUpdate);
+
+        console.log(`User ${userId} upgraded to Pro`);
+    } catch (error) {
         console.error(`Error upgrading user ${userId} to Pro:`, error);
-        return { success: false, error: error.message || "Failed to upgrade user role in database." };
+        throw new Error(`Failed to upgrade user ${userId}: ${(error as Error).message}`);
     }
 }
 
@@ -175,15 +179,17 @@ export async function checkAndRecordComponentGeneration() {
     }
 }
 
-
 /**
  * Checks if a user is allowed to generate AI post content.
  * Free users are limited to 1 generation per 24 hours.
  * If allowed, it also records the generation timestamp.
+ * ACCEPTS an optional userId to bypass cookie-based auth for API calls.
  */
-export async function checkAndRecordPostGeneration() {
+export async function checkAndRecordPostGeneration(userIdOverride?: string) { // <-- Menerima argumen opsional
     try {
-        const userId = await getUserId();
+        // Jika userId diberikan (dari API route), gunakan itu.
+        // Jika tidak, dapatkan dari cookie sesi (untuk panggilan dari web app).
+        const userId = userIdOverride || await getUserId(); // <-- Logika baru
         if (!adminDb) throw new Error('Firestore not initialized');
 
         const userRef = adminDb.collection('users').doc(userId);
@@ -236,7 +242,7 @@ export async function checkAndRecordPostGeneration() {
  * Free users are limited to 1 generation per 24 hours.
  * If allowed, it also records the generation timestamp.
  */
-export async function checkAndRecordImageGeneration() {
+export async function checkAndRecordImageGeneration(userId: string) {
     try {
         const userId = await getUserId();
         if (!adminDb) throw new Error('Firestore not initialized');
@@ -294,9 +300,7 @@ export async function updateUserRole(newRole: 'freeUser' | 'proUser', licenseId:
             throw new Error('Firestore not initialized');
         }
 
-        // Verifikasi licenseId via worker endpoint (integrasi dengan Cloudflare Worker)
-        const workerUrl = process.env.WORKER_URL || 'https://your-worker.workers.dev'; // Gunakan env untuk production
-        const res = await fetch(`${workerUrl}/check-license?id=${licenseId}`);
+        const res = await fetch(`/api/verifyUser?id=${licenseId}`);
         if (!res.ok) {
             throw new Error('Failed to verify license from worker.');
         }

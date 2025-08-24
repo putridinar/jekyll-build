@@ -1,4 +1,3 @@
-
 // src/app/settings/page.tsx
 'use client';
 
@@ -7,9 +6,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {  saveSettings, getSettings, disconnectGithub, deleteTemplateState } from '@/actions/content';
+import {  saveSettings, getSettings, disconnectGithub } from '@/actions/content';
 import { Github, Loader2, Trash2, ExternalLink, Settings as SettingsIcon, Crown } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/app/header';
 import { AppFooter } from '@/components/app/footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -41,11 +40,19 @@ function SettingsPageContent() {
     const [isDisconnecting, setIsDisconnecting] = React.useState(false);
     const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
 
-    // Hook useMemo dipindahkan ke atas untuk memastikan pemanggilan hook tanpa syarat
+    // --- PERBAIKAN LOGIKA URL ---
     const githubPagesUrl = React.useMemo(() => {
         if (settings.githubRepo) {
             const [owner, repoName] = settings.githubRepo.split('/');
+            // URL GitHub Pages biasanya menggunakan nama repo, bukan nama branch
             return `https://${owner}.github.io/${repoName}/`;
+        }
+        return null;
+    }, [settings.githubRepo]);
+
+    const githubRepoUrl = React.useMemo(() => {
+        if (settings.githubRepo) {
+            return `https://github.com/${settings.githubRepo}/`;
         }
         return null;
     }, [settings.githubRepo]);
@@ -130,19 +137,15 @@ function SettingsPageContent() {
         }
     }, [user, fetchInitialData]);
 
-
-    // === PERBARUAN FUNGSI ===
     const handleRepoChange = async (repoFullName: string) => {
-        // Hentikan jika repo yang dipilih sama dengan yang sekarang untuk menghindari reset.
         if (settings.githubRepo === repoFullName) {
             return;
         }
 
         setSettings((prev: any) => ({ ...prev, githubRepo: repoFullName, githubBranch: '' }));
-        setBranches([]); // Clear branches when repo changes
+        setBranches([]);
         
         if (repoFullName) {
-            // Fetch branches for the newly selected repository
             await fetchBranches(repoFullName);
         }
     };
@@ -150,25 +153,25 @@ function SettingsPageContent() {
     const handleBranchChange = async (branch: string) => {
         const newSettings = { ...settings, githubBranch: branch };
         setSettings(newSettings);
-
-        // Hanya simpan jika repo dan branch sudah dipilih
+    
         if (newSettings.githubRepo && branch) {
             setIsSaving(true);
             try {
-                await saveSettings({ githubRepo: newSettings.githubRepo, githubBranch: branch });
-
-                // Add toast for workspace activation
-                toast({
-                    title: 'Workspace Update',
-                    description: 'Preparing your workspace with the selected repository.',
+                const workspaceId = newSettings.githubRepo.replace('/', '__'); 
+    
+                await saveSettings({ 
+                    githubRepo: newSettings.githubRepo, 
+                    githubBranch: branch,
+                    activeWorkspaceId: workspaceId, 
                 });
-
-                // 1. Hapus state proyek/template lama dari Firestore
-                await deleteTemplateState();
+    
+                toast({
+                    title: 'Workspace Activated',
+                    description: 'Your selected repository is now the active workspace.',
+                });
                 
-                // 2. Arahkan pengguna kembali ke halaman utama.
                 router.push('/workspace');
-
+    
             } catch (error: any) {
                 toast({
                     title: 'Save Failed',
@@ -182,9 +185,8 @@ function SettingsPageContent() {
     };
 
     const handleReconnect = () => {
-        const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME;
         if (appName) {
-            window.location.href = `https://github.com/apps/${appName}/installations/new`;
+            window.location.href = GITHUB_APP_URL;
         } else {
             toast({
                 title: 'Configuration Error',
@@ -223,14 +225,6 @@ function SettingsPageContent() {
             setIsDisconnecting(false);
         }
     };
-
-    // Fungsi untuk mengambil branch saat repo dipilih di dalam dialog
-    // const onRepoSelectInDialog = async (repoFullName: string) => {
-    //     setSelectedRepo(repoFullName);
-    //     setSelectedBranch(''); // Reset pilihan branch
-    //     // Panggil fungsi fetchBranches yang sudah ada
-    //     await fetchBranches(repoFullName);
-    // };
     
      if (authLoading || loading || !user) {
         return <LoadingScreen />;
@@ -241,7 +235,6 @@ function SettingsPageContent() {
                 <AppHeader />
                 <main className="flex-1 bg-muted/20 p-4 sm:p-6 md:p-8">
                     <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
-                        {/* Kartu Profil */}
                         <Card className="md:col-span-1">
                             <CardHeader className="flex flex-row justify-between items-center gap-4">
                                 <div className='flex flex-col space-y-3'>
@@ -254,17 +247,6 @@ function SettingsPageContent() {
                                         <CardDescription>{user.email}</CardDescription>
                                     </div>
                                 </div>
-                                {githubPagesUrl && (
-                                    <div>
-                                        <Button variant="outline" size="sm" className="mt-1" asChild>
-                                            <a href={githubPagesUrl} target="_blank" rel="noopener noreferrer">
-                                                View Site <ExternalLink className="ml-2 h-4 w-4" />
-                                            </a>
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardHeader>
-                            <CardContent className="space-y-4">
                                 <div>
                                     <h3 className="text-sm font-medium">Account Status</h3>
                                     {user.role === 'proUser' ? (
@@ -275,27 +257,47 @@ function SettingsPageContent() {
                                         <Badge variant="secondary" className="mt-1">Free User</Badge>
                                     )}
                                 </div>
-                                 {user.role === 'proUser' && (
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex flex-row justify-between gap-2">
+                                    <>
+                                {githubPagesUrl && (
                                     <div>
-                                        <h3 className="text-sm font-medium">Subscription</h3>
                                         <Button variant="outline" size="sm" className="mt-1" asChild>
-                                            <a href={PAYPAL_MANAGE_SUBSCRIPTION_URL} target="_blank" rel="noopener noreferrer">
-                                                Manage Subscription <ExternalLink className="ml-2 h-4 w-4" />
+                                            <a href={githubPagesUrl} target="_blank" rel="noopener noreferrer">
+                                                View Pages <ExternalLink className="ml-2 h-4 w-4" />
                                             </a>
                                         </Button>
                                     </div>
                                 )}
+                                {githubRepoUrl && (
+                                    <div>
+                                        <Button variant="outline" size="sm" className="mt-1" asChild>
+                                            <a href={githubRepoUrl} target="_blank" rel="noopener noreferrer">
+                                                View Repos <ExternalLink className="ml-2 h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                    </div>
+                                )}
+                                </>
+                                </div>
                             </CardContent>
+                            <CardFooter className="border-t mx-auto pt-6">
+                                 {user.role === 'proUser' && (
+                                        <Button variant="outline" size="sm" className="w-full" asChild>
+                                            <a href={PAYPAL_MANAGE_SUBSCRIPTION_URL} target="_blank" rel="noopener noreferrer">
+                                                Manage Subscription <ExternalLink className="ml-2 h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                )}
                         {user.role === 'freeUser' && (
-                            <CardFooter className="border-t pt-6">
-                                    <Button className="w-full" onClick={() => setUpgradeModalOpen(true)}>
+                                    <Button className="w-full" size="sm" onClick={() => setUpgradeModalOpen(true)}>
                                         <Crown className="mr-2 h-4 w-4" />
                                         Upgrade to Pro
                                     </Button>
-                            </CardFooter>
                         )}
+                            </CardFooter>
                         </Card>
-                        {/* Kartu Pengaturan GitHub */}
                         <Card className="md:col-span-2 flex flex-col">
                             <CardHeader>
                                 <div className="flex justify-between items-center gap-2">
@@ -397,8 +399,6 @@ function SettingsPageContent() {
                                 </CardFooter>
                             )}
                         </Card>
-                    </div>
-                    <div className="mx-auto grid max-w-6xl items-start gap-6 md:grid-cols-3 lg:grid-cols-3">
                     </div>
                 </main>
                 <AppFooter isPublishing={false} isCreatingPr={false} />

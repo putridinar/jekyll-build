@@ -16,10 +16,19 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
 
     const handleLoginSuccess = async (user: User) => {
+        setLoading(true);
         try {
+            // Dapatkan githubId dari providerData
+            const githubId = user.providerData.find(p => p.providerId === 'github.com')?.uid;
+
+            if (!githubId) {
+                throw new Error("Could not find GitHub ID from provider data.");
+            }
+
             // Initialize user in Firestore if they don't exist
             await initializeUser({
                 uid: user.uid,
+                githubId: githubId, // Gunakan githubId yang sudah pasti ada
                 email: user.email,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
@@ -34,10 +43,10 @@ export default function LoginPage() {
                 router.push('/dashboard');
             } else {
                 setError(sessionResult.error || 'Failed to create session.');
-                setLoading(false);
             }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred during login setup.');
+        } finally {
             setLoading(false);
         }
     };
@@ -64,7 +73,8 @@ export default function LoginPage() {
 
     return (
         <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-sm dark:bg-[#3d444d]">
+    <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
+            <Card className="w-full max-w-sm dark:bg-[#3d444d] opacity-90">
                 <CardHeader className="text-center">
                      <div className="flex justify-center mb-4">
                         <Icons.logo className="h-10 w-10"/>

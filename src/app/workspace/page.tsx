@@ -1,4 +1,4 @@
-
+// src/app/workspace/page.tsx
 'use client';
 
 import * as React from 'react';
@@ -31,10 +31,9 @@ import {
   publishTemplateFiles,
   getSettings,
   createPullRequestAction,
-  saveTemplateState,
-  getTemplateState,
-  cloneRepository,
   saveWorkspaceState,
+  getWorkspaceState,
+  cloneRepository,
 } from '@/actions/content';
 import {useDebouncedCallback} from 'use-debounce';
 import {CodeEditor} from '@/components/app/code-editor';
@@ -324,10 +323,10 @@ gem "jekyll-sitemap"
 function HomePageContent() {
   const {toast} = useToast();
   const [fileStructure, setFileStructure] =
-    React.useState<FileNode[]>(initialFileStructure);
-  const [activeFile, setActiveFile] = React.useState<string>('index.html');
+    React.useState<FileNode[]>([]);
+  const [activeFile, setActiveFile] = React.useState<string>('');
   const [fileContents, setFileContents] =
-    React.useState<{[key: string]: string}>(initialFileContents);
+    React.useState<{[key: string]: string}>({});
   const [renamingPath, setRenamingPath] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const isMobile = useIsMobile();
@@ -347,146 +346,133 @@ function HomePageContent() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false);
   const [activeWorkspaceId, setActiveWorkspaceId] = React.useState<string | null>(null);
-  const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
-    new Set([
-      '_layouts',
-      '_includes',
-      '_posts',
-      '_data',
-      'assets',
-      'assets/css',
-      'assets/images',
-      'assets/js',
-    ])
-  );
+  const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
+  const [content, setContent] = React.useState('');
 
-  React.useEffect(() => {
-    // Efek ini berjalan sekali saat mount. Jika mobile, ini akan menutup semua folder.
-    // Ini lebih andal daripada mengaturnya di state awal.
-    if (isMobile) {
-      setExpandedFolders(new Set());
-    }
-  }, [isMobile]);
 
   React.useEffect(() => {
     const loadProject = async () => {
-        if (user) {
-            const result = await getTemplateState();
-            if (result.success && result.data?.fileStructure) {
-                // Jika state ada di Firestore, restore di sini
-                setFileStructure(result.data.fileStructure);
-                setActiveFile(result.data.activeFile);
-                setFileContents(result.data.fileContents);
-                setExpandedFolders(new Set(result.data.expandedFolders));
-                setContent(result.data.fileContents[result.data.activeFile] ?? '');
-                toast({ title: 'Session Restored', description: 'Resuming your previous session.' });
-                setProjectLoaded(true);
-            } else {
-                // Jika state tidak ada, "clone" dari GitHub
-                toast({ title: 'Loading Project...', description: 'Fetching files from your GitHub repository.' });
-                const cloneResult = await cloneRepository();
-                if (cloneResult.success) {
-                    setFileStructure(cloneResult.fileStructure!);
-                    setFileContents(cloneResult.fileContents!);
-                    setActiveFile('index.html'); // Set default file
-                    setContent(cloneResult.fileContents!['index.html'] ?? '');
-                    setProjectLoaded(true);
-                } else {
-                    toast({ title: 'Failed to Load Project', description: cloneResult.error, variant: 'destructive' });
-                }
-            }
+        // Jangan lakukan apa-apa sampai user dan status projectLoaded jelas
+        if (!user || projectLoaded) {
+            return;
         }
-    };
-    if (!projectLoaded) {
-        loadProject();
-    }
-  }, [user, projectLoaded, toast]);
 
-  React.useEffect(() => {
-    const loadProject = async () => {
-        if (user && loadingState === 'idle') {
-            setLoadingState('loading');
+        setLoadingState('loading');
+        // Tandai bahwa proses loading sudah dimulai untuk mencegah eksekusi ganda
+        setProjectLoaded(true); 
+        
+        const settingsResult = await getSettings();
+        const settingsData = settingsResult.success ? settingsResult.data : null;
+
+        // ATURAN #1: Jika user punya koneksi GitHub...
+        if (settingsData?.installationId) {
+            const workspaceIdToLoad = settingsData.activeWorkspaceId;
+
+            if (!workspaceIdToLoad) {
+                // Jika tidak ada workspace aktif, jangan buat default. Tendang ke dasbor.
+                toast({
+                    title: "Pilih Workspace",
+                    description: "Silakan pilih repositori dari dasbor untuk mulai bekerja.",
+                });
+                router.push('/dashboard');
+                return;
+            }
             
-            const result = await getTemplateState();
-            if (result.success && result.data?.fileStructure) {
-                // ... (logika memuat dari Firestore)
-                setLoadingState('loaded');
+            setActiveWorkspaceId(workspaceIdToLoad);
+            const workspaceDataResult = await getWorkspaceState(workspaceIdToLoad);
+
+            if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
+                // Ditemukan di Firestore, muat progres terakhir.
+                const { data } = workspaceDataResult;
+                setFileStructure(data.fileStructure);
+                setActiveFile(data.activeFile);
+                setFileContents(data.fileContents);
+                setExpandedFolders(new Set(data.expandedFolders || []));
+                setContent(data.fileContents[data.activeFile] ?? '');
             } else {
-                setLoadingState('cloning'); // Ganti state ke 'cloning'
+                // Tidak ada di Firestore (pertama kali buka), lakukan clone.
+                setLoadingState('cloning');
                 const cloneResult = await cloneRepository();
-                if (cloneResult.success) {
-                    // ... (logika setelah clone berhasil)
-                    setLoadingState('loaded');
+                if (cloneResult.success && cloneResult.fileStructure && cloneResult.fileContents) {
+                    const clonedState = {
+                        name: settingsData?.githubRepo?.split('/')[1] || 'Cloned Workspace',
+                        githubRepo: settingsData?.githubRepo,
+                        githubBranch: settingsData?.githubBranch,
+                        fileStructure: cloneResult.fileStructure,
+                        activeFile: 'index.html',
+                        fileContents: cloneResult.fileContents,
+                        expandedFolders: Array.from(new Set(['_layouts', '_includes', '_posts', '_data', 'assets', 'assets/css', 'assets/images', 'assets/js'])),
+                    };
+                    await saveWorkspaceState(workspaceIdToLoad, clonedState);
+                    setFileStructure(clonedState.fileStructure);
+                    setFileContents(clonedState.fileContents);
+                    setActiveFile(clonedState.activeFile);
+                    setContent(clonedState.fileContents[clonedState.activeFile] ?? '');
                 } else {
-                    // ... (logika error)
+                    toast({ title: 'Gagal Clone Repositori', description: cloneResult.error, variant: 'destructive' });
                     setLoadingState('error');
+                    return; // Hentikan jika clone gagal
                 }
             }
+        } else {
+            // ATURAN #2: Jika TIDAK ADA koneksi GitHub, barulah kita urus default workspace.
+            setActiveWorkspaceId('default');
+            const workspaceDataResult = await getWorkspaceState('default');
+             if (workspaceDataResult.success && workspaceDataResult.data?.fileStructure) {
+                const { data } = workspaceDataResult;
+                setFileStructure(data.fileStructure);
+                setActiveFile(data.activeFile);
+                setFileContents(data.fileContents);
+                setExpandedFolders(new Set(data.expandedFolders || []));
+                setContent(data.fileContents[data.activeFile] ?? '');
+            } else {
+                const defaultState = {
+                    name: 'Default Template',
+                    fileStructure: initialFileStructure,
+                    activeFile: 'index.html',
+                    fileContents: initialFileContents,
+                    expandedFolders: Array.from(new Set(['_layouts', '_includes', '_posts', '_data', 'assets', 'assets/css', 'assets/images', 'assets/js'])),
+                };
+                await saveWorkspaceState('default', defaultState);
+                setFileStructure(defaultState.fileStructure);
+                setFileContents(defaultState.fileContents);
+                setActiveFile(defaultState.activeFile);
+                setContent(defaultState.fileContents[defaultState.activeFile] ?? '');
+            }
         }
+
+        setLoadingState('loaded');
     };
     
     loadProject();
-  }, [user, loadingState, toast]);
-
-  const handleFixCode = async () => {
-    if (!content) return;
-
-    setIsFixing(true);
-    toast({ title: 'Analyzing & Fixing Code...', description: 'AI is at work, please wait.' });
-
-    try {
-      const language = getLanguage(activeFile);
-      const fixedCode = await fixJekyllCode(content, language, activeFile);
-      
-      handleContentChange(fixedCode);
-      
-      toast({ title: 'Code Fixed Successfully!', description: 'Changes have been applied in the editor.' });
-    } catch (error: any) {
-      toast({ title: 'Failed to Fix Code', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsFixing(false);
-    }
-  };
-
-  const onFixCodeClick = () => {
-    if (user?.role === 'proUser') {
-      handleFixCode();
-    } else {
-      toast({
-        title: 'Pro Feature 👑',
-        description: 'Upgrade to Pro to use the automatic code fixing feature!',
-      });
-      setUpgradeModalOpen(true);
-    }
-  };
-
-  function getLanguage(filename: string) {
-    if (!filename) return 'markup';
-    const extension = filename.split('.').pop() || '';
-    switch (extension) {
-        case 'html': case 'liquid': return 'markup';
-        case 'css': return 'css';
-        case 'js': return 'javascript';
-        case 'yml': case 'yaml': return 'yaml';
-        case 'md': case 'markdown': return 'markdown';
-        case 'rb': return 'ruby';
-        default: return 'markup';
-    }
-  }
-
+  }, [user, projectLoaded, router, toast]);
+  
+  // Pembaruan fungsi debouncedSave
   const debouncedSave = useDebouncedCallback(async (stateToSave) => {
+    if (!activeWorkspaceId) return; // Jangan simpan jika tidak ada workspace yang aktif
+
     setIsSaving(true);
-    if (activeWorkspaceId) {
-      await saveWorkspaceState(activeWorkspaceId, stateToSave);
-    }
     try {
-      await saveTemplateState(stateToSave);
+      await saveWorkspaceState(activeWorkspaceId, stateToSave);
     } catch (error) {
       console.error('Auto-save error:', error);
     } finally {
       setIsSaving(false);
     }
   }, 2000);
+
+  // Pembaruan useEffect yang memanggil debouncedSave
+  React.useEffect(() => {
+    if (loading || !user || !projectLoaded) return;
+
+    const stateToSave = {
+      fileStructure,
+      activeFile,
+      fileContents,
+      expandedFolders: Array.from(expandedFolders),
+    };
+    debouncedSave(stateToSave);
+  }, [fileStructure, activeFile, fileContents, expandedFolders, debouncedSave, loading, user, projectLoaded]);
 
   React.useEffect(() => {
     if (loading || !user) return;
@@ -499,11 +485,6 @@ function HomePageContent() {
     };
     debouncedSave(stateToSave);
   }, [fileStructure, activeFile, fileContents, expandedFolders, debouncedSave, loading, user]);
-
-  // State konten terpadu untuk editor
-  const [content, setContent] = React.useState(
-    fileContents?.[activeFile] ?? ''
-  );
 
   const handleActiveFileChange = (path: string) => {
     // Simpan konten saat ini sebelum beralih
@@ -795,6 +776,52 @@ function HomePageContent() {
     },
     [activeFile, toast]
   );
+  
+  const handleFixCode = async () => {
+    if (!content) return;
+
+    setIsFixing(true);
+    toast({ title: 'Analyzing & Fixing Code...', description: 'AI is at work, please wait.' });
+
+    try {
+      const language = getLanguage(activeFile);
+      const fixedCode = await fixJekyllCode(content, language, activeFile);
+      
+      handleContentChange(fixedCode);
+      
+      toast({ title: 'Code Fixed Successfully!', description: 'Changes have been applied in the editor.' });
+    } catch (error: any) {
+      toast({ title: 'Failed to Fix Code', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
+  const onFixCodeClick = () => {
+    if (user?.role === 'proUser') {
+      handleFixCode();
+    } else {
+      toast({
+        title: 'Pro Feature 👑',
+        description: 'Upgrade to Pro to use the automatic code fixing feature!',
+      });
+      setUpgradeModalOpen(true);
+    }
+  };
+
+  function getLanguage(filename: string) {
+    if (!filename) return 'markup';
+    const extension = filename.split('.').pop() || '';
+    switch (extension) {
+        case 'html': case 'liquid': return 'markup';
+        case 'css': return 'css';
+        case 'js': return 'javascript';
+        case 'yml': case 'yaml': return 'yaml';
+        case 'md': case 'markdown': return 'markdown';
+        case 'rb': return 'ruby';
+        default: return 'markup';
+    }
+  }
 
   const handleGenerateComponent = React.useCallback(
     async (prompt: string) => {
@@ -872,7 +899,7 @@ function HomePageContent() {
         setIsGenerating(false);
       }
     },
-    [toast]
+    [toast, activeFile]
   );
 
   const handleImageUpload = React.useCallback(
@@ -1135,11 +1162,7 @@ function HomePageContent() {
     }
   }, [user, loading, router]);
   
-  if (loadingState === 'cloning') {
-    return <CloningScreen />; 
-  }
-
-  if (loading || !user) {
+  if (loading || loadingState === 'loading' || loadingState === 'idle') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
@@ -1147,11 +1170,15 @@ function HomePageContent() {
     );
   }
   
+  if (loadingState === 'cloning') {
+    return <CloningScreen />; 
+  }
+
   if (loadingState === 'error') {
       return (
           <div className="flex h-screen w-full flex-col items-center justify-center text-center">
-              <h2 className="text-2xl font-bold text-destructive">Failed to Load Project</h2>
-              <p className="text-muted-foreground">Could not fetch data from the GitHub repository. <br /> Make sure your settings are correct and try reloading the page.</p>
+              <h2 className="text-2xl font-bold text-destructive">Gagal Memuat Proyek</h2>
+              <p className="text-muted-foreground">Tidak dapat mengambil data dari repositori GitHub. <br /> Pastikan pengaturan Anda benar dan coba muat ulang halaman.</p>
           </div>
       );
   }
@@ -1173,7 +1200,7 @@ function HomePageContent() {
       setRenamingPath={setRenamingPath}
     />
   );
-
+  
   return (
     <TooltipProvider>
       <div className="flex h-screen w-full flex-col">

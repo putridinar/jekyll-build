@@ -1,7 +1,8 @@
+// src/components/app/file-explorer.tsx
 
 'use client';
 
-import { FileCode, Folder, FolderPlus, Upload, ChevronRight, Plus, Trash2, Pencil } from 'lucide-react';
+import { FileCode, Folder, FolderPlus, Upload, ChevronRight, Plus, Trash2, Pencil, LayoutDashboard } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import type { FileNode } from '@/types';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,7 @@ import { Input } from '../ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from 'firebase/auth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import Link from 'next/link';
 
 type CustomUser = User & { role?: string };
 
@@ -128,14 +130,25 @@ function FileTree({
                             isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                         )}>
                              {node.type === 'folder' && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onNewFile(node.path); }}>
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>New File</p></TooltipContent>
-                                </Tooltip>
+                                <>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onNewFile(node.path); }}>
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>New File</p></TooltipContent>
+                                    </Tooltip>
+                                    {/* --- TOMBOL BARU DITAMBAHKAN DI SINI --- */}
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onNewFolder(node.path); }}>
+                                                <FolderPlus className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>New Folder</p></TooltipContent>
+                                    </Tooltip>
+                                </>
                              )}
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -223,12 +236,12 @@ export function FileExplorer({
   setRenamingPath
 }: FileExplorerProps) {
   return (
-    <aside className="z-10 flex w-full flex-col border-r bg-background md:w-72">
+    <aside className="relative z-10 flex w-full flex-grow-0 flex-col border-r bg-background md:w-72">
       <div className="flex h-14 shrink-0 items-center justify-between p-2 px-4">
         <h2 className="font-headline text-lg font-semibold">Workspace</h2>
       </div>
       <Separator />
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2 min-h-0">
+      <nav className="relative flex-1 space-y-1 overflow-y-auto p-2 min-h-0">
         <FileTree
           nodes={fileStructure}
           activeFile={activeFile}
@@ -244,6 +257,10 @@ export function FileExplorer({
           setRenamingPath={setRenamingPath}
         />
       </nav>
+      <Link href='/dashboard' className='fixed md:relative md:w-72 bottom-0 w-80 flex justify-start gap-4 items-center px-4 min-h-14 border-t text-muted-foreground overflow-hidden hover:bg-muted hover:text-foreground'>
+        <LayoutDashboard className="h-5 w-5" />
+        <span>Back to Dashboard</span>
+      </Link>
     </aside>
   );
 }

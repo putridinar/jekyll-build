@@ -13,10 +13,11 @@ export default function LandingPage() {
       <div className="flex items-center justify-between h-16">
         <Link href="/" className="flex gap-1 items-center text-2xl font-bold text-indigo-600 tracking-tight">
                 <Icons.logo className="h-8 w-8" />Jekyll Buildr</Link> 
-        <Link href="/login"
-           className="btn-shine inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition">
-          Sign In
-        </Link> 
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="btn-shine inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition">
+                Sign In
+              </Link> 
+            </div>
       </div>
     </nav>
   </header>
@@ -25,7 +26,7 @@ export default function LandingPage() {
     <div className="fixed top-0 inset-0 bg-gradient-to-bl from-gray-500 via-gray-700 to-transparent"></div>
     <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-5"></div>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-      <div className="text-center">
+      <div className="hero-flex text-center">
         <h1 className="fade-in text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight ">
           The Modern Way to
           <br />
@@ -39,9 +40,9 @@ export default function LandingPage() {
              className="btn-shine w-full sm:w-auto inline-flex justify-center items-center px-8 py-4 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-105">
             Start Building for Free
           </Link> 
-          <Link id="demoBtn" href="https://daffadevhosting.github.io/blog/" target='_blank'
+          <Link id="demoBtn" href="https://marketplace.visualstudio.com/items?itemName=DaffaDev.jekyll-buildr" target='_blank'
                   className="w-full sm:w-auto inline-flex justify-center items-center px-8 py-4 border border-slate-300 text-slate-800 font-semibold rounded-xl shadow-sm bg-gray-400 hover:bg-slate-50 transition">
-            View Demo
+            VScode EXT
           </Link>
         </div>
       </div>
@@ -82,8 +83,8 @@ export default function LandingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold ">Live Preview</h3>
-          <p className="mt-2 text-slate-400">Instantly see your changes rendered in a real browser environment while you type.</p>
+          <h3 className="text-xl font-semibold ">VS Code Integrated</h3>
+          <p className="mt-2 text-slate-400">All AI features are integrated with VS Code editor extension.</p>
         </div>
       </div>
     </div>

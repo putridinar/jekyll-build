@@ -89,7 +89,7 @@ pre[class*="language-"] {
 .token.atrule,
 .token.keyword,
 .token.builtin {
-	color: #cc99cd;
+	color: #d45207;
 }
 
 .token.string,
@@ -97,7 +97,7 @@ pre[class*="language-"] {
 .token.attr-value,
 .token.regex,
 .token.variable {
-	color: #7ec699;
+	color: #5ebd5e;
 }
 
 .token.operator,
